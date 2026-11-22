@@ -1,0 +1,181 @@
+{
+  "source_index": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/main/data/index.json",
+  "index_sha256": "a8525624049894e1aeb220790ed8c013067a99f2ffdbcb938d5a4cef91f0cf53",
+  "thresholds": {
+    "min_index_steps": 15,
+    "min_effective_calls": 15,
+    "min_long_traces": 2,
+    "max_shortlist_tasks_per_domain": 2
+  },
+  "summary": {
+    "candidate_tasks": 243,
+    "successful_traces_in_scope": 670,
+    "traces_counted": 670,
+    "traces_unavailable": 0,
+    "eligible_tasks": 106
+  },
+  "shortlist": [
+    "marketing.webinar_cancellation_workflow",
+    "support.freshdesk_zoho_migration",
+    "hr.termination_checklist",
+    "operations.linkedin_job_change",
+    "support.gorgias_loyalty_program",
+    "marketing.event_followup_personalization",
+    "operations.hubspot_ticket_escalation",
+    "sales.zoom_meeting_roi_analysis"
+  ],
+  "tasks": [
+    {
+      "task": "marketing.webinar_cancellation_workflow",
+      "example_id": 1155,
+      "domain": "marketing",
+      "successful_traces": 4,
+      "counted_traces": 4,
+      "long_successful_traces": 4,
+      "min_effective_calls": 38,
+      "median_effective_calls": 55.5,
+      "max_effective_calls": 66,
+      "all_successful_traces_long": true,
+      "eligible": true,
+      "trace_ids": [
+        "marketing-webinar-cancellation-workflow-1155-02005531",
+        "marketing-webinar-cancellation-workflow-1155-d2b090cc",
+        "marketing-webinar-cancellation-workflow-1155-67b85713",
+        "marketing-webinar-cancellation-workflow-1155-c0ad67ec"
+      ]
+    },
+    {
+      "task": "support.freshdesk_zoho_migration",
+      "example_id": 1466,
+      "domain": "support",
+      "successful_traces": 4,
+      "counted_traces": 4,
+      "long_successful_traces": 4,
+      "min_effective_calls": 30,
+      "median_effective_calls": 30.5,
+      "max_effective_calls": 34,
+      "all_successful_traces_long": true,
+      "eligible": true,
+      "trace_ids": [
+        "support-freshdesk-zoho-migration-1466-8ac50b4b",
+        "support-freshdesk-zoho-migration-1466-4ed1eecb",
+        "support-freshdesk-zoho-migration-1466-d5376ee9",
+        "support-freshdesk-zoho-migration-1466-577b15a8"
+      ]
+    },
+    {
+      "task": "hr.termination_checklist",
+      "example_id": 5114,
+      "domain": "hr",
+      "successful_traces": 4,
+      "counted_traces": 4,
+      "long_successful_traces": 4,
+      "min_effective_calls": 29,
+      "median_effective_calls": 41.5,
+      "max_effective_calls": 65,
+      "all_successful_traces_long": true,
+      "eligible": true,
+      "trace_ids": [
+        "hr-termination-checklist-5114-00a9f706",
+        "hr-termination-checklist-5114-9e0e90d0",
+        "hr-termination-checklist-5114-29e8706b",
+        "hr-termination-checklist-5114-844bb9f6"
+      ]
+    },
+    {
+      "task": "operations.linkedin_job_change",
+      "example_id": 1299,
+      "domain": "operations",
+      "successful_traces": 4,
+      "counted_traces": 4,
+      "long_successful_traces": 4,
+      "min_effective_calls": 28,
+      "median_effective_calls": 29.5,
+      "max_effective_calls": 30,
+      "all_successful_traces_long": true,
+      "eligible": true,
+      "trace_ids": [
+        "operations-linkedin-job-change-1299-ad3422ab",
+        "operations-linkedin-job-change-1299-e4f6a8bc",
+        "operations-linkedin-job-change-1299-36b424b0",
+        "operations-linkedin-job-change-1299-ccaa5b27"
+      ]
+    },
+    {
+      "task": "support.gorgias_loyalty_program",
+      "example_id": 1580,
+      "domain": "support",
+      "successful_traces": 4,
+      "counted_traces": 4,
+      "long_successful_traces": 4,
+      "min_effective_calls": 21,
+      "median_effective_calls": 26.5,
+      "max_effective_calls": 31,
+      "all_successful_traces_long": true,
+      "eligible": true,
+      "trace_ids": [
+        "support-gorgias-loyalty-program-1580-af520888",
+        "support-gorgias-loyalty-program-1580-39189374",
+        "support-gorgias-loyalty-program-1580-4e757af0",
+        "support-gorgias-loyalty-program-1580-27d006df"
+      ]
+    },
+    {
+      "task": "marketing.event_followup_personalization",
+      "example_id": 1215,
+      "domain": "marketing",
+      "successful_traces": 4,
+      "counted_traces": 4,
+      "long_successful_traces": 4,
+      "min_effective_calls": 21,
+      "median_effective_calls": 26.0,
+      "max_effective_calls": 33,
+      "all_successful_traces_long": true,
+      "eligible": true,
+      "trace_ids": [
+        "marketing-event-followup-personalization-1215-636a62ef",
+        "marketing-event-followup-personalization-1215-6f212740",
+        "marketing-event-followup-personalization-1215-dad8da5b",
+        "marketing-event-followup-personalization-1215-fb2d9a27"
+      ]
+    },
+    {
+      "task": "operations.hubspot_ticket_escalation",
+      "example_id": 1281,
+      "domain": "operations",
+      "successful_traces": 4,
+      "counted_traces": 4,
+      "long_successful_traces": 4,
+      "min_effective_calls": 21,
+      "median_effective_calls": 23.0,
+      "max_effective_calls": 31,
+      "all_successful_traces_long": true,
+      "eligible": true,
+      "trace_ids": [
+        "operations-hubspot-ticket-escalation-1281-50f3ba5d",
+        "operations-hubspot-ticket-escalation-1281-89641a15",
+        "operations-hubspot-ticket-escalation-1281-4990c8f1",
+        "operations-hubspot-ticket-escalation-1281-f3bc7d67"
+      ]
+    },
+    {
+      "task": "sales.zoom_meeting_roi_analysis",
+      "example_id": 1200,
+      "domain": "sales",
+      "successful_traces": 4,
+      "counted_traces": 4,
+      "long_successful_traces": 4,
+      "min_effective_calls": 20,
+      "median_effective_calls": 27.0,
+      "max_effective_calls": 50,
+      "all_successful_traces_long": true,
+      "eligible": true,
+      "trace_ids": [
+        "sales-zoom-meeting-roi-analysis-1200-d514e4b7",
+        "sales-zoom-meeting-roi-analysis-1200-82fcf53d",
+        "sales-zoom-meeting-roi-analysis-1200-dbab27fb",
+        "sales-zoom-meeting-roi-analysis-1200-0dab5ba8"
+      ]
+    }
+  ]
+}

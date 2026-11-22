@@ -46,6 +46,22 @@ uv run python -m automationbench.scripts.paired_eval --model gpt-4.1-mini \
 
 可对联系人更新题加 `--budget 5 --tasks simple.email_sf_contact_phone_update`，使用不同的加速收益。查邮件、定位联系人和写入手机号码的快速版分别节省 600、250 和 50 ms，一条三步轨迹最多升级一个动作。预算写入两组提示词，报告记录实际是否超预算。
 
+### 从公开轨迹筛长任务
+
+[首批 8 道题及轨迹证据](benchmarks/holo4-long-trace-shortlist.json)。
+
+```sh
+uv run python -m automationbench.scripts.long_trace_screen \
+  --cache-dir data/holo4-trajectories \
+  --output visualizer/runs/local/holo4-long-trace-screen.json
+```
+
+脚本读取 H Company 发布的 Holo4 公开轨迹。先保留至少有一条成功轨迹达到 15 个索引步的题，再读取这些题的全部成功轨迹，包括较短的成功记录。逐条统计 `api_fetch` 调用，单列 `api_search`、可识别的失败、重试和无法判读的结果。同一请求返回同一结果的重复 GET 或 HEAD 在两次写入之间只计一次。写入和处理不同记录的调用逐次计入。
+
+默认要求每道入围题至少有两条成功轨迹达到 15 次有效业务调用。报告同时保留最短、最长和中位调用数。默认选取最多 8 题、每个业务领域最多 2 题，优先选所有已发布成功轨迹都达标的题。结果衡量公开轨迹的实际调用长度。不同工具接口或模型可能找到更短的解法。
+
+用 `--shortlist-output PATH` 可导出精简短名单，用 `--offline` 可从缓存重算，用 `--revision` 可指定 Hugging Face 的版本。若有轨迹无法读取，脚本仍输出覆盖情况和可计算的结果，并以非零状态退出。筛出的任务可通过现有 `paired_eval --tasks ...` 接入成本与速度评测。
+
 ### 筛选预算评测题目
 
 把已有通过记录的原始评测文件交给筛选器。可重复传入 `--reference` 合并多个来源。
