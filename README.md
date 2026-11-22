@@ -33,6 +33,19 @@ done
 
 统一配置位于 [tool_variants.py](automationbench/tool_variants.py)。可用 `uv run pytest -q tests/test_tool_variants.py` 做离线回放验证。
 
+### 配对评测
+
+配置模型凭据后运行。默认固定五道题、同一模型和工具配置，分别给出成本优先与速度优先指令。可用 `--tasks 域.任务名,域.任务名` 覆盖题目列表。
+
+```sh
+uv run python -m automationbench.scripts.paired_eval --model gpt-4.1-mini \
+  --output-dir visualizer/runs/local/paired-pilot
+```
+
+输出 `cost.json`、`speed.json` 和 `comparison.json`。汇总保留失败与未完成的任务，按业务动作比较实际工具名和调用序列。费用节省值为速度组费用减成本组费用，时延节省值为成本组模拟时延减速度组模拟时延。
+
+可对联系人更新题加 `--budget 5 --tasks simple.email_sf_contact_phone_update`，使用不同的加速收益。查邮件、定位联系人和写入手机号码的快速版分别节省 600、250 和 50 ms，一条三步轨迹最多升级一个动作。预算写入两组提示词，报告记录实际是否超预算。
+
 ## Overview
 
 AutomationBench evaluates how well AI models complete realistic business workflows—the kind of tasks that happen daily in sales, marketing, operations, support, finance, and HR. Each task initializes a simulated business environment (CRM, calendar, inbox, etc.) across 47 simulated SaaS tools and checks whether the agent leaves it in the correct state.

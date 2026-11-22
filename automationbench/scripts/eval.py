@@ -219,6 +219,7 @@ async def run_evaluation(
     variant_scenario: str = "cost-speed",
     variant_seed: int = 0,
     tool_preference: str = "neutral",
+    tool_budget: int | None = None,
 ) -> None:
     """Run AutomationBench evaluation."""
     # Create dataset and rubric
@@ -241,6 +242,11 @@ async def run_evaluation(
         console.print(f"[key]Filtering to {len(indices)} tasks: {task_names}[/key]")
 
     preference = PREFERENCES[tool_preference]
+    if tool_budget is not None:
+        preference = (
+            f"{preference} Keep the total cost of all tool attempts at or below "
+            f"{tool_budget} cost units."
+        ).strip()
     if preference:
         def add_preference(row):
             prompt = row["prompt"]
@@ -508,6 +514,8 @@ async def run_evaluation(
             extra_meta.update(variant_scenario=variant_scenario, variant_seed=variant_seed)
         if tool_preference != "neutral":
             extra_meta["tool_preference"] = tool_preference
+        if tool_budget is not None:
+            extra_meta["tool_budget"] = tool_budget
         export_results(
             outputs,
             usage,

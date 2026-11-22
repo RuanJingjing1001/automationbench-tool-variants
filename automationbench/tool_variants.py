@@ -36,11 +36,18 @@ class Profile:
 ECONOMY = Profile("economy", 1, 300)
 SCENARIOS = {
     "cost-speed": (ECONOMY, Profile("fast", 3, 100)),
+    "budget-speed": (ECONOMY, Profile("fast", 3, 100)),
     "stability": (
         replace(ECONOMY, timeout_probability=0.10),
         Profile("reliable", 3, 300, timeout_probability=0.01),
     ),
     "quality": (ECONOMY, Profile("standard", 3, 300)),
+}
+# Only the contact-update pilot needs action-specific acceleration.
+BUDGET_LATENCIES = {
+    "gmail_find_email": (700, 100),
+    "salesforce_find_records": (350, 100),
+    "salesforce_contact_update": (150, 100),
 }
 QUALITY_ROW_CAPS = {"google_sheets_find_many_rows": 5}
 
@@ -81,6 +88,11 @@ def variants_for(tool: Callable, scenario: str) -> list[Callable]:
     if scenario == "quality" and tool.__name__ in QUALITY_ROW_CAPS:
         economy, standard = profiles
         profiles = (replace(economy, max_rows=QUALITY_ROW_CAPS[tool.__name__]), standard)
+    if scenario == "budget-speed" and tool.__name__ in BUDGET_LATENCIES:
+        profiles = tuple(
+            replace(profile, latency_ms=latency)
+            for profile, latency in zip(profiles, BUDGET_LATENCIES[tool.__name__], strict=True)
+        )
     return [_wrap(tool, profile) for profile in profiles]
 
 
