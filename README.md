@@ -46,6 +46,21 @@ uv run python -m automationbench.scripts.paired_eval --model gpt-4.1-mini \
 
 可对联系人更新题加 `--budget 5 --tasks simple.email_sf_contact_phone_update`，使用不同的加速收益。查邮件、定位联系人和写入手机号码的快速版分别节省 600、250 和 50 ms，一条三步轨迹最多升级一个动作。预算写入两组提示词，报告记录实际是否超预算。
 
+### 筛选预算评测题目
+
+把已有通过记录的原始评测文件交给筛选器。可重复传入 `--reference` 合并多个来源。
+
+```sh
+uv run python -m automationbench.scripts.budget_eval \
+  --reference visualizer/runs/local/paired-pilot/cost.json \
+  --reference visualizer/runs/local/paired-pilot/speed.json \
+  --output-dir visualizer/runs/local/budget-plan
+```
+
+`selection.json` 把任务分为主实验、简单对照和待补参考。主实验默认要求至少四种不同业务动作、一条满分完成的参考轨迹、至少一个无法全选快速版的中间预算，以及不同步骤之间的加速收益差。筛选使用已经取得的参考轨迹，可独立于待测模型取得。
+
+加 `--model MODEL` 在各预算下运行主实验题，加 `--include-controls` 同时运行对照。用 `--comparison PATH` 可离线给已有预算配对结果打分。`scores.json` 记录通过、超预算和模拟时延差。只有通过且预算内的结果计算时延差，最优值是在该结果**实际执行的同一动作序列**中重新选择工具版本得到的，执行其他动作路线时也有可比定义。计划中的参考最优值则以参考轨迹为条件。
+
 ## Overview
 
 AutomationBench evaluates how well AI models complete realistic business workflows—the kind of tasks that happen daily in sales, marketing, operations, support, finance, and HR. Each task initializes a simulated business environment (CRM, calendar, inbox, etc.) across 47 simulated SaaS tools and checks whether the agent leaves it in the correct state.

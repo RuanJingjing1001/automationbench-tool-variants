@@ -43,11 +43,15 @@ SCENARIOS = {
     ),
     "quality": (ECONOMY, Profile("standard", 3, 300)),
 }
-# Only the contact-update pilot needs action-specific acceleration.
+# Action-specific latency gains for the budget pilot.
 BUDGET_LATENCIES = {
     "gmail_find_email": (700, 100),
     "salesforce_find_records": (350, 100),
     "salesforce_contact_update": (150, 100),
+    "google_sheets_get_many_rows": (700, 100),
+    "trello_card_update": (350, 100),
+    "trello_card_label": (150, 100),
+    "basecamp3_todo": (350, 100),
 }
 QUALITY_ROW_CAPS = {"google_sheets_find_many_rows": 5}
 
@@ -82,18 +86,22 @@ class VariantExecution:
         )
 
 
-def variants_for(tool: Callable, scenario: str) -> list[Callable]:
-    """Give a business action independent callable names and the original input schema."""
+def profiles_for_action(action: str, scenario: str) -> tuple[Profile, ...]:
     profiles = SCENARIOS[scenario]
-    if scenario == "quality" and tool.__name__ in QUALITY_ROW_CAPS:
+    if scenario == "quality" and action in QUALITY_ROW_CAPS:
         economy, standard = profiles
-        profiles = (replace(economy, max_rows=QUALITY_ROW_CAPS[tool.__name__]), standard)
-    if scenario == "budget-speed" and tool.__name__ in BUDGET_LATENCIES:
+        profiles = (replace(economy, max_rows=QUALITY_ROW_CAPS[action]), standard)
+    if scenario == "budget-speed" and action in BUDGET_LATENCIES:
         profiles = tuple(
             replace(profile, latency_ms=latency)
-            for profile, latency in zip(profiles, BUDGET_LATENCIES[tool.__name__], strict=True)
+            for profile, latency in zip(profiles, BUDGET_LATENCIES[action], strict=True)
         )
-    return [_wrap(tool, profile) for profile in profiles]
+    return profiles
+
+
+def variants_for(tool: Callable, scenario: str) -> list[Callable]:
+    """Give a business action independent callable names and the original input schema."""
+    return [_wrap(tool, profile) for profile in profiles_for_action(tool.__name__, scenario)]
 
 
 def _wrap(tool: Callable, profile: Profile) -> Callable:
