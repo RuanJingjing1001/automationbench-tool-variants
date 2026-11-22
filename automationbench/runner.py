@@ -17,6 +17,7 @@ from verifiers.types import AssistantMessage, ToolMessage
 
 from automationbench.schema.world import WorldState
 from automationbench.task_contract import TASK_CONTRACT_SCHEMA, task_contract_sha256
+from automationbench.tool_variants import VariantExecution, variants_for
 from automationbench.tools import ALL_TOOLS
 from automationbench.tools.api import API_TOOLS
 
@@ -101,6 +102,8 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         toolset: str = "zapier",
         use_meta_tools: bool | None = None,  # None = infer from toolset
         search_top_k: int | None = None,  # Hard cap on search_tools top_k (None = no cap)
+        variant_scenario: str = "cost-speed",
+        variant_seed: int = 0,
         **kwargs,
     ):
         # Initialize parent with empty tools (we'll add them with args_to_skip)
@@ -115,11 +118,14 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         # Store flags
         self.allow_all_tools = allow_all_tools
         self.toolset = toolset
+        self.variant_scenario = variant_scenario
+        self.variant_seed = variant_seed
+        self._variant_names: dict[str, tuple[str, ...]] = {}
         # Meta-tools only for "zapier" toolset; "limited_zapier" and "api" use direct tool access
         if use_meta_tools is None:
             self.use_meta_tools = toolset == "zapier"
         else:
-            self.use_meta_tools = use_meta_tools and toolset not in ("api", "limited_zapier")
+            self.use_meta_tools = use_meta_tools and toolset not in ("api", "limited_zapier", "variants")
 
         if self.use_meta_tools:
             from automationbench.tools.zapier.meta import (
@@ -136,6 +142,15 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
             )
             self.add_tool(actual_search)
             self.add_tool(execute_tool, args_to_skip=["world"])
+        elif toolset == "variants":
+            for action in ALL_TOOLS:
+                variants = variants_for(action, variant_scenario)
+                self._variant_names[action.__name__] = tuple(tool.__name__ for tool in variants)
+                hidden = ["_variant_execution"]
+                if "world" in inspect.signature(action).parameters:
+                    hidden.append("world")
+                for variant in variants:
+                    self.add_tool(variant, args_to_skip=hidden)
         else:
             # Register tools based on toolset selection
             tool_list = (
@@ -194,6 +209,9 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         if "world" in skipped:
             updated_args["world"] = state["world"]
 
+        if "_variant_execution" in skipped:
+            updated_args["_variant_execution"] = state["_variant_execution"]
+
         return updated_args
 
     async def setup_state(self, state: vf.State, **kwargs) -> vf.State:
@@ -251,6 +269,17 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         if self.use_meta_tools:
             # Meta-tools mode: model always gets the discovery tools
             filtered_tools = self._all_tool_defs
+        elif self.toolset == "variants":
+            base_names = self._variant_names if self.allow_all_tools else info.get("zapier_tools", [])
+            allowed_names = {
+                variant_name for name in base_names for variant_name in self._variant_names[name]
+            }
+            filtered_tools = [tool for tool in self._all_tool_defs if tool.name in allowed_names]
+            execution = VariantExecution.start(
+                allowed_names, self.variant_scenario, self.variant_seed, example_id
+            )
+            state["_variant_execution"] = execution
+            state["tool_variants"] = execution.report
         elif self.allow_all_tools or self.toolset == "api":
             filtered_tools = self._all_tool_defs
         else:

@@ -36,6 +36,7 @@ from automationbench.export import export_partial_results, export_results
 from automationbench.pricing import PricingDatabase
 from automationbench.rubric import create_rubric
 from automationbench.runner import AutomationBenchEnv
+from automationbench.tool_variants import PREFERENCES, SCENARIOS
 from automationbench.usage import calculate_run_usage, print_usage_report
 
 
@@ -215,6 +216,9 @@ async def run_evaluation(
     batch: bool = False,
     batch_linger_seconds: float = 20.0,
     batch_poll_seconds: float = 30.0,
+    variant_scenario: str = "cost-speed",
+    variant_seed: int = 0,
+    tool_preference: str = "neutral",
 ) -> None:
     """Run AutomationBench evaluation."""
     # Create dataset and rubric
@@ -235,6 +239,22 @@ async def run_evaluation(
             return
         dataset = dataset.select(indices)
         console.print(f"[key]Filtering to {len(indices)} tasks: {task_names}[/key]")
+
+    preference = PREFERENCES[tool_preference]
+    if preference:
+        def add_preference(row):
+            prompt = row["prompt"]
+            return {
+                "prompt": [
+                    {
+                        **message,
+                        "content": message["content"] + f"\n\nExecution preference: {preference}",
+                    } if index == 0 else message
+                    for index, message in enumerate(prompt)
+                ]
+            }
+
+        dataset = dataset.map(add_preference)
 
     rubric = create_rubric()
 
@@ -292,6 +312,8 @@ async def run_evaluation(
         max_turns=max_turns,
         toolset=toolset,
         search_top_k=search_top_k,
+        variant_scenario=variant_scenario,
+        variant_seed=variant_seed,
     )
     console.print(f"[key]Toolset:[/key] {toolset}")
 
@@ -424,7 +446,8 @@ async def run_evaluation(
         num_examples=num_examples,
         rollouts_per_example=1,
         max_concurrent=max_concurrent,
-        state_columns=["_usage", "_debug", "_assertion_results", "_end_state", "_perf"],
+        state_columns=["_usage", "_debug", "_assertion_results", "_end_state", "_perf"]
+        + (["tool_variants"] if toolset == "variants" else []),
         on_start=on_start,
         on_progress=on_progress,
     )
@@ -449,6 +472,7 @@ async def run_evaluation(
                 "_assertion_results": ro.get("_assertion_results"),
                 "_end_state": ro.get("_end_state"),
                 "_perf": ro.get("_perf"),
+                "tool_variants": ro.get("tool_variants"),
             }
         )
 
@@ -479,6 +503,11 @@ async def run_evaluation(
 
     # Export results if requested
     if export_json:
+        extra_meta = {"batch": True} if batch else {}
+        if toolset == "variants":
+            extra_meta.update(variant_scenario=variant_scenario, variant_seed=variant_seed)
+        if tool_preference != "neutral":
+            extra_meta["tool_preference"] = tool_preference
         export_results(
             outputs,
             usage,
@@ -488,7 +517,7 @@ async def run_evaluation(
             duration_seconds=duration_seconds,
             toolset=toolset,
             reasoning_effort=reasoning_effort,
-            extra_meta={"batch": True} if batch else None,
+            extra_meta=extra_meta,
             step_cap=max_turns,
         )
         console.print(f"\n[key]Results exported to:[/key] {export_json}")
@@ -633,9 +662,12 @@ Examples:
         "--toolset",
         type=str,
         default="api",
-        choices=["zapier", "limited_zapier", "api"],
-        help="Toolset to use: 'api' (default) for REST API tools, 'zapier' for meta-tools discovery mode, 'limited_zapier' for per-task tool lists",
+        choices=["zapier", "limited_zapier", "api", "variants"],
+        help="Toolset to use: 'api' (default) for REST API tools, 'zapier' for meta-tools discovery mode, 'limited_zapier' for per-task tool lists, 'variants' for per-task tool variants",
     )
+    parser.add_argument("--variant-scenario", choices=SCENARIOS, default="cost-speed")
+    parser.add_argument("--variant-seed", type=int, default=0)
+    parser.add_argument("--tool-preference", choices=PREFERENCES, default="neutral")
     parser.add_argument(
         "--max-concurrent",
         type=int,
@@ -752,6 +784,9 @@ Examples:
             extra_body=args.extra_body,
             api=args.api,
             toolset=args.toolset,
+            variant_scenario=args.variant_scenario,
+            variant_seed=args.variant_seed,
+            tool_preference=args.tool_preference,
             max_concurrent=args.max_concurrent,
             search_top_k=args.search_top_k,
             batch=args.batch,

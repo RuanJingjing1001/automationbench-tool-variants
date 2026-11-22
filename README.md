@@ -8,6 +8,31 @@ A benchmark for evaluating AI agents on realistic business workflows.
 
 Learn more at [zapier.com/benchmarks](https://zapier.com/benchmarks) or run it on the [Prime Intellect Environments Hub](https://app.primeintellect.ai/dashboard/environments/zapier/AutomationBench).
 
+## 第一阶段 · 同功能工具变体
+
+基于 Zapier AutomationBench `4a8e106`。选择 `--toolset variants` 时，每个任务原先可用的业务动作会展开成两个独立可调用的工具，比如 `salesforce_find_records_economy` 和 `salesforce_find_records_fast`。两版复用原参数和业务函数，原任务断言照常评分。`--toolset limited_zapier` 可运行单版本对照。
+
+| `--variant-scenario` | 两个版本 | 实验差异 |
+| --- | --- | --- |
+| `cost-speed`（默认） | `economy` / `fast` | 每次 1 单位 / 300 ms 与 3 单位 / 100 ms。 |
+| `stability` | `economy` / `reliable` | 两版均 300 ms，费用分别为 1 和 3 单位，执行前超时概率分别为 10% 和 1%。 |
+| `quality` | `economy` / `standard` | 两版均 300 ms，费用分别为 1 和 3 单位。仅 `google_sheets_find_many_rows` 的省钱版每次最多返回 5 行，标准版使用原有参数和返回上限。使用数据超过 5 行且实际需要这些行的题检验质量差异。 |
+
+使用已配置凭据的模型运行同一任务两次。以下以 OpenAI 接口为例，需设置 `OPENAI_API_KEY`。
+
+```sh
+uv sync --locked
+for preference in cost speed; do
+  uv run auto-bench --model gpt-5-mini --domains simple \
+    --tasks simple.email_sf_contact_phone_update --toolset variants \
+    --tool-preference "$preference" --export-json "phase-one-$preference.json"
+done
+```
+
+在导出的 `tasks[].tool_variants` 里，查看 `attempts[].tool` 比较实际选择，再对照 `total_cost_units`、`total_simulated_latency_ms`、`injected_timeouts` 和任务得分。工具费用按尝试累计，包括模拟超时和重试。模拟延迟是当前串行执行顺序下的累加值。实测工具耗时和模型费用使用原导出字段。稳定性场景可重复同一组 `--variant-seed` 比较策略，超时在业务函数执行前返回。
+
+统一配置位于 [tool_variants.py](automationbench/tool_variants.py)。可用 `uv run pytest -q tests/test_tool_variants.py` 做离线回放验证。
+
 ## Overview
 
 AutomationBench evaluates how well AI models complete realistic business workflows—the kind of tasks that happen daily in sales, marketing, operations, support, finance, and HR. Each task initializes a simulated business environment (CRM, calendar, inbox, etc.) across 47 simulated SaaS tools and checks whether the agent leaves it in the correct state.

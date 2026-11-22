@@ -1410,6 +1410,7 @@ ALL_TOOLS: list = [
     slack_get_message_reactions,
     slack_get_thread_replies,
     slack_find_user_by_email,
+    slack_find_user_by_id,
     slack_find_user_by_name,
     slack_set_status,
     # LinkedIn tools

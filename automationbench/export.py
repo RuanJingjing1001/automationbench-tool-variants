@@ -217,6 +217,9 @@ def export_results(
             "end_state": output.get("_end_state"),
         }
 
+        if output.get("tool_variants") is not None:
+            task_result["tool_variants"] = output["tool_variants"]
+
         # Add debug info if there were any issues
         if empty_responses:
             task_result["empty_responses"] = empty_responses
