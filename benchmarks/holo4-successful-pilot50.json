@@ -1,0 +1,460 @@
+{
+  "source": "benchmarks/holo4-successful-effective-calls-gt10.json",
+  "source_commit": "e4924522895bfc31963799146716c33ba2d10d7d",
+  "seed": 42,
+  "method": "Python random.Random(42).sample over tasks sorted by task ID, without replacement",
+  "population_size": 300,
+  "sample_size": 50,
+  "tasks": [
+    {
+      "task": "hr.docusign_policy_acknowledgment",
+      "example_id": 5079,
+      "domain": "hr",
+      "max_successful_effective_calls": 16,
+      "successful_trace_id": "hr-docusign-policy-acknowledgment-5079-b0415227",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "finance.grant_expense_tracking",
+      "example_id": 4052,
+      "domain": "finance",
+      "max_successful_effective_calls": 34,
+      "successful_trace_id": "finance-grant-expense-tracking-4052-5383c478",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "marketing.social_engagement_response",
+      "example_id": 1003,
+      "domain": "marketing",
+      "max_successful_effective_calls": 14,
+      "successful_trace_id": "marketing-social-engagement-response-1003-ee5f70f2",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "marketing.lead_enrichment",
+      "example_id": 1006,
+      "domain": "marketing",
+      "max_successful_effective_calls": 18,
+      "successful_trace_id": "marketing-lead-enrichment-1006-b0be81a8",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "marketing.creative_asset",
+      "example_id": 1079,
+      "domain": "marketing",
+      "max_successful_effective_calls": 11,
+      "successful_trace_id": "marketing-creative-asset-1079-a981c674",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "hr.mandatory_meeting_scheduling",
+      "example_id": 5124,
+      "domain": "hr",
+      "max_successful_effective_calls": 20,
+      "successful_trace_id": "hr-mandatory-meeting-scheduling-5124-41c1335e",
+      "successful_trace_model": "Holo4 35B A3B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "hr.compliance_training_enrollment",
+      "example_id": 5088,
+      "domain": "hr",
+      "max_successful_effective_calls": 18,
+      "successful_trace_id": "hr-compliance-training-enrollment-5088-5a291c48",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "support.hiver_mailbox_audit",
+      "example_id": 1554,
+      "domain": "support",
+      "max_successful_effective_calls": 14,
+      "successful_trace_id": "support-hiver-mailbox-audit-1554-f9895466",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "hr.anniversary_recognition",
+      "example_id": 5105,
+      "domain": "hr",
+      "max_successful_effective_calls": 15,
+      "successful_trace_id": "hr-anniversary-recognition-5105-c96a910e",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "sales.create_important_draft",
+      "example_id": 103,
+      "domain": "sales",
+      "max_successful_effective_calls": 22,
+      "successful_trace_id": "sales-create-important-draft-103-4c445d11",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "finance.overdue_invoice_followup",
+      "example_id": 4003,
+      "domain": "finance",
+      "max_successful_effective_calls": 20,
+      "successful_trace_id": "finance-overdue-invoice-followup-4003-b92b9d02",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "finance.multicurrency_invoice",
+      "example_id": 4017,
+      "domain": "finance",
+      "max_successful_effective_calls": 12,
+      "successful_trace_id": "finance-multicurrency-invoice-4017-6788b1a2",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "hr.benefits_enrollment_review",
+      "example_id": 5134,
+      "domain": "hr",
+      "max_successful_effective_calls": 21,
+      "successful_trace_id": "hr-benefits-enrollment-review-5134-e8c47f81",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "marketing.content_repurpose",
+      "example_id": 1083,
+      "domain": "marketing",
+      "max_successful_effective_calls": 16,
+      "successful_trace_id": "marketing-content-repurpose-1083-4100239f",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "marketing.event_sponsorship_screen",
+      "example_id": 1167,
+      "domain": "marketing",
+      "max_successful_effective_calls": 21,
+      "successful_trace_id": "marketing-event-sponsorship-screen-1167-1b5712c3",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "sales.zoom_webinar_lead_capture",
+      "example_id": 803,
+      "domain": "sales",
+      "max_successful_effective_calls": 15,
+      "successful_trace_id": "sales-zoom-webinar-lead-capture-803-c00fc941",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "finance.intercompany_invoice",
+      "example_id": 4068,
+      "domain": "finance",
+      "max_successful_effective_calls": 17,
+      "successful_trace_id": "finance-intercompany-invoice-4068-03abaa1b",
+      "successful_trace_model": "Holo4 35B A3B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "support.reamaze_multi_channel_dedup",
+      "example_id": 1584,
+      "domain": "support",
+      "max_successful_effective_calls": 22,
+      "successful_trace_id": "support-reamaze-multi-channel-dedup-1584-4f9131b8",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "marketing.analyst_briefing",
+      "example_id": 1099,
+      "domain": "marketing",
+      "max_successful_effective_calls": 15,
+      "successful_trace_id": "marketing-analyst-briefing-1099-a2b55900",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "sales.contract_renewal_coordinator",
+      "example_id": 1181,
+      "domain": "sales",
+      "max_successful_effective_calls": 16,
+      "successful_trace_id": "sales-contract-renewal-coordinator-1181-135e3038",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "marketing.content_syndication",
+      "example_id": 1041,
+      "domain": "marketing",
+      "max_successful_effective_calls": 11,
+      "successful_trace_id": "marketing-content-syndication-1041-b3ef9a56",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "sales.docusign_sequential_signing",
+      "example_id": 837,
+      "domain": "sales",
+      "max_successful_effective_calls": 22,
+      "successful_trace_id": "sales-docusign-sequential-signing-837-1b49cfb8",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "marketing.social_scheduling",
+      "example_id": 1061,
+      "domain": "marketing",
+      "max_successful_effective_calls": 16,
+      "successful_trace_id": "marketing-social-scheduling-1061-c60b396d",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "finance.contract_billing",
+      "example_id": 4039,
+      "domain": "finance",
+      "max_successful_effective_calls": 15,
+      "successful_trace_id": "finance-contract-billing-4039-acf24011",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "hr.promotion_announcement",
+      "example_id": 5112,
+      "domain": "hr",
+      "max_successful_effective_calls": 11,
+      "successful_trace_id": "hr-promotion-announcement-5112-4caf3d56",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "operations.hubspot_payment_failure",
+      "example_id": 1307,
+      "domain": "operations",
+      "max_successful_effective_calls": 18,
+      "successful_trace_id": "operations-hubspot-payment-failure-1307-0bbea7d8",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "hr.performance_review_cycle",
+      "example_id": 5036,
+      "domain": "hr",
+      "max_successful_effective_calls": 15,
+      "successful_trace_id": "hr-performance-review-cycle-5036-1fa7cad7",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "marketing.contact_data_cleanup",
+      "example_id": 1008,
+      "domain": "marketing",
+      "max_successful_effective_calls": 24,
+      "successful_trace_id": "marketing-contact-data-cleanup-1008-6ca3644c",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "operations.hubspot_lead_qualification",
+      "example_id": 1284,
+      "domain": "operations",
+      "max_successful_effective_calls": 23,
+      "successful_trace_id": "operations-hubspot-lead-qualification-1284-afcbfcd0",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "operations.server_capacity_threshold_alerts",
+      "example_id": 1334,
+      "domain": "operations",
+      "max_successful_effective_calls": 39,
+      "successful_trace_id": "operations-server-capacity-threshold-alerts-1334-abdbf11b",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "hr.candidate_rejection_followup",
+      "example_id": 5018,
+      "domain": "hr",
+      "max_successful_effective_calls": 12,
+      "successful_trace_id": "hr-candidate-rejection-followup-5018-06478c7a",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "operations.office_supply_budget_monitoring",
+      "example_id": 1395,
+      "domain": "operations",
+      "max_successful_effective_calls": 12,
+      "successful_trace_id": "operations-office-supply-budget-monitoring-1395-7f0d2dcf",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "operations.hubspot_ticket_escalation",
+      "example_id": 1281,
+      "domain": "operations",
+      "max_successful_effective_calls": 31,
+      "successful_trace_id": "operations-hubspot-ticket-escalation-1281-50f3ba5d",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "marketing.product_adoption",
+      "example_id": 1120,
+      "domain": "marketing",
+      "max_successful_effective_calls": 12,
+      "successful_trace_id": "marketing-product-adoption-1120-137316b2",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "finance.qb_estimate_conversion",
+      "example_id": 4033,
+      "domain": "finance",
+      "max_successful_effective_calls": 13,
+      "successful_trace_id": "finance-qb-estimate-conversion-4033-2b7ca1ec",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "sales.implicit_rules",
+      "example_id": 513,
+      "domain": "sales",
+      "max_successful_effective_calls": 17,
+      "successful_trace_id": "sales-implicit-rules-513-4d22d7e4",
+      "successful_trace_model": "Holo4 35B A3B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "support.helpscout_hubspot_deal_alerts",
+      "example_id": 1468,
+      "domain": "support",
+      "max_successful_effective_calls": 16,
+      "successful_trace_id": "support-helpscout-hubspot-deal-alerts-1468-bc02cb9e",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "hr.expense_report_audit",
+      "example_id": 5119,
+      "domain": "hr",
+      "max_successful_effective_calls": 21,
+      "successful_trace_id": "hr-expense-report-audit-5119-4b1f175a",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "operations.sensor_monitoring_alert",
+      "example_id": 1322,
+      "domain": "operations",
+      "max_successful_effective_calls": 11,
+      "successful_trace_id": "operations-sensor-monitoring-alert-1322-22f4c5b0",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "finance.xero_po_matching",
+      "example_id": 4072,
+      "domain": "finance",
+      "max_successful_effective_calls": 17,
+      "successful_trace_id": "finance-xero-po-matching-4072-c0737599",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    },
+    {
+      "task": "support.intercom_auto_response_drafts",
+      "example_id": 1506,
+      "domain": "support",
+      "max_successful_effective_calls": 14,
+      "successful_trace_id": "support-intercom-auto-response-drafts-1506-783957e2",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "operations.asana_fire_drill",
+      "example_id": 1201,
+      "domain": "operations",
+      "max_successful_effective_calls": 12,
+      "successful_trace_id": "operations-asana-fire-drill-1201-1edb63e6",
+      "successful_trace_model": "Holo4 35B A3B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "operations.overtime_threshold_monitoring",
+      "example_id": 1351,
+      "domain": "operations",
+      "max_successful_effective_calls": 11,
+      "successful_trace_id": "operations-overtime-threshold-monitoring-1351-4d048cd7",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "support.zoho_desk_capacity_planning",
+      "example_id": 1585,
+      "domain": "support",
+      "max_successful_effective_calls": 16,
+      "successful_trace_id": "support-zoho-desk-capacity-planning-1585-76ee6465",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 3
+    },
+    {
+      "task": "hr.twilio_emergency_notification",
+      "example_id": 5080,
+      "domain": "hr",
+      "max_successful_effective_calls": 12,
+      "successful_trace_id": "hr-twilio-emergency-notification-5080-d70aff5e",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "finance.wave_product_catalog",
+      "example_id": 4038,
+      "domain": "finance",
+      "max_successful_effective_calls": 12,
+      "successful_trace_id": "finance-wave-product-catalog-4038-9fa288f0",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 1
+    },
+    {
+      "task": "finance.qb_invoice_from_orders",
+      "example_id": 4012,
+      "domain": "finance",
+      "max_successful_effective_calls": 21,
+      "successful_trace_id": "finance-qb-invoice-from-orders-4012-1be2a6d9",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "marketing.email_campaign_analytics",
+      "example_id": 1157,
+      "domain": "marketing",
+      "max_successful_effective_calls": 17,
+      "successful_trace_id": "marketing-email-campaign-analytics-1157-81668748",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "marketing.webinar_cancellation_workflow",
+      "example_id": 1155,
+      "domain": "marketing",
+      "max_successful_effective_calls": 66,
+      "successful_trace_id": "marketing-webinar-cancellation-workflow-1155-02005531",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 4
+    },
+    {
+      "task": "hr.comp_adjustment_batch",
+      "example_id": 5132,
+      "domain": "hr",
+      "max_successful_effective_calls": 23,
+      "successful_trace_id": "hr-comp-adjustment-batch-5132-5d4a2825",
+      "successful_trace_model": "Holo4 27B",
+      "successful_long_trace_count": 2
+    }
+  ]
+}
