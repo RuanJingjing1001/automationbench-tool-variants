@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-"""Run matched cost/speed evaluations and compare the resulting tool trajectories."""
+"""Compare native, cost-priority and latency-priority tool runs."""
 
 import argparse
 import asyncio
@@ -39,12 +39,14 @@ def load_pilot50(limit: int | None = None) -> tuple[str, ...]:
     return tasks[:limit]
 
 
-def arm_summary(task: dict | None, aborted: bool, budget: int | None) -> dict:
+def arm_summary(
+    task: dict | None, aborted: bool, budget: int | None, *, native: bool = False
+) -> dict:
     if task is None:
         return {"status": "missing"}
 
     report = task.get("tool_variants")
-    if report is None or aborted or task.get("errors"):
+    if (report is None and not native) or aborted or task.get("errors"):
         status = "incomplete"
     else:
         status = "passed" if task["passed"] else "failed"
@@ -65,19 +67,21 @@ def arm_summary(task: dict | None, aborted: bool, budget: int | None) -> dict:
 
 
 def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict:
+    arms = ("native", *PREFERENCES) if "native" in runs else PREFERENCES
     by_arm = {
-        arm: {task["name"]: task for task in run.get("tasks", [])} for arm, run in runs.items()
+        arm: {task["name"]: task for task in runs.get(arm, {}).get("tasks", [])} for arm in arms
     }
     aborted_by_arm = {
-        arm: set(run.get("summary", {}).get("aborted_tasks", [])) for arm, run in runs.items()
+        arm: set(runs.get(arm, {}).get("summary", {}).get("aborted_tasks", [])) for arm in arms
     }
     pairs = []
     for name in tasks:
-        cost, speed = (
-            arm_summary(by_arm[arm].get(name), name in aborted_by_arm[arm], budget)
-            for arm in PREFERENCES
-        )
-        pair = {"task": name, "cost": cost, "speed": speed}
+        pair = {"task": name}
+        for arm in arms:
+            pair[arm] = arm_summary(
+                by_arm[arm].get(name), name in aborted_by_arm[arm], budget, native=arm == "native"
+            )
+        cost, speed = pair["cost"], pair["speed"]
         if "attempts" in cost and "attempts" in speed:
             tools_by_action = []
             for result in (cost, speed):
@@ -108,21 +112,25 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
             ),
             "with_tool_switch": sum(bool(pair.get("tool_switches")) for pair in pairs),
             "with_incomplete_arm": sum(
-                any(pair[arm]["status"] in ("missing", "incomplete") for arm in PREFERENCES)
+                any(pair[arm]["status"] in ("missing", "incomplete") for arm in arms)
                 for pair in pairs
             ),
         },
     }
 
 
-async def run_pair(args, tasks: tuple[str, ...], domains: list[str]) -> dict:
+async def run_pair(
+    args, tasks: tuple[str, ...], domains: list[str], *, include_native: bool = False
+) -> dict:
     args.output_dir.mkdir(parents=True, exist_ok=False)
     runs = {}
     errors = {}
     scenario = "budget-speed" if args.budget is not None else "cost-speed"
-    for arm in PREFERENCES:
+    arms = ("native", *PREFERENCES) if include_native else PREFERENCES
+    for arm in arms:
+        native = arm == "native"
         raw_path = args.output_dir / f"{arm}.json"
-        print(f"Running {arm} preference", flush=True)
+        print(f"Running {arm} arm", flush=True)
         try:
             async with asyncio.timeout(args.arm_timeout):
                 await run_evaluation(
@@ -131,11 +139,11 @@ async def run_pair(args, tasks: tuple[str, ...], domains: list[str]) -> dict:
                     base_url=args.base_url,
                     api=args.api,
                     tasks=",".join(tasks),
-                    toolset="variants",
+                    toolset="limited_zapier" if native else "variants",
                     variant_scenario=scenario,
                     variant_seed=args.variant_seed,
-                    tool_preference=arm,
-                    tool_budget=args.budget,
+                    tool_preference="neutral" if native else arm,
+                    tool_budget=None if native else args.budget,
                     max_turns=args.max_steps,
                     max_concurrent=args.max_concurrent,
                     export_json=str(raw_path),
@@ -155,13 +163,21 @@ async def run_pair(args, tasks: tuple[str, ...], domains: list[str]) -> dict:
 
 def print_report(report: dict) -> None:
     table = Table(
-        "Task", "Cost arm", "Speed arm", "Cost saved", "Time saved (ms)", "Actions switched"
+        "Task",
+        "Native arm",
+        "Cost arm",
+        "Speed arm",
+        "Cost saved",
+        "Time saved (ms)",
+        "Actions switched",
     )
     for pair in report["tasks"]:
         arms = []
-        for arm in PREFERENCES:
+        for arm in ("native", *PREFERENCES):
             result = pair[arm]
             label = result["status"]
+            if "score" in result and result["score"] is not None:
+                label += f" · {result['score']:.1%}"
             if "cost_units" in result:
                 label += f" · {result['cost_units']}u / {result['simulated_latency_ms']}ms"
             if result.get("within_budget") is False:
@@ -204,7 +220,9 @@ def main() -> None:
     )
     parser.add_argument("--max-concurrent", type=int, default=2)
     parser.add_argument("--variant-seed", type=int, default=0)
-    parser.add_argument("--budget", type=int, help="Tool cost ceiling stated in both prompts")
+    parser.add_argument(
+        "--budget", type=int, help="Tool cost ceiling stated in the variant prompts"
+    )
     args = parser.parse_args()
     if args.limit is not None and not args.pilot50:
         parser.error("--limit requires --pilot50")
@@ -239,7 +257,7 @@ def main() -> None:
         parser.error(str(exc))
     if unknown := set(tasks) - available:
         parser.error(f"unknown task IDs {', '.join(sorted(unknown))}")
-    report = asyncio.run(run_pair(args, tasks, domains))
+    report = asyncio.run(run_pair(args, tasks, domains, include_native=True))
     print_report(report)
     print(f"Comparison saved to {args.output_dir / 'comparison.json'}")
     if report["summary"]["with_incomplete_arm"]:

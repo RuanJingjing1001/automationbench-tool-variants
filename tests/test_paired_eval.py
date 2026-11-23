@@ -41,7 +41,7 @@ def test_pair_preserves_failure_and_separates_actions_from_tool_switches():
     assert missing["speed"]["status"] == "missing"
 
 
-def test_pilot50_runs_the_same_first_five_tasks_in_both_arms(monkeypatch, tmp_path):
+def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, tmp_path):
     tasks = load_pilot50()
     first_five = load_pilot50(5)
     assert len(set(tasks)) == 50
@@ -63,6 +63,9 @@ def test_pilot50_runs_the_same_first_five_tasks_in_both_arms(monkeypatch, tmp_pa
                 for name in first_five
             ]
         }
+        if kwargs["toolset"] == "limited_zapier":
+            for task in output["tasks"]:
+                task.pop("tool_variants")
         path.write_text(json.dumps(output))
 
     monkeypatch.setattr(paired_eval, "run_evaluation", evaluate)
@@ -78,16 +81,21 @@ def test_pilot50_runs_the_same_first_five_tasks_in_both_arms(monkeypatch, tmp_pa
         arm_timeout=3600,
     )
     report = asyncio.run(
-        paired_eval.run_pair(args, first_five, ["hr", "finance", "operations", "marketing"])
+        paired_eval.run_pair(
+            args, first_five, ["hr", "finance", "operations", "marketing"], include_native=True
+        )
     )
     assert [(call["tool_preference"], call["tasks"]) for call in calls] == [
+        ("neutral", ",".join(first_five)),
         ("cost", ",".join(first_five)),
         ("speed", ",".join(first_five)),
     ]
-    calls[0].pop("tool_preference")
-    calls[1].pop("tool_preference")
-    assert calls[0] == calls[1]
-    assert calls[0]["toolset"] == "variants"
+    assert [call.pop("toolset") for call in calls] == ["limited_zapier", "variants", "variants"]
+    for call in calls:
+        call.pop("tool_preference")
+    assert calls[0] == calls[1] == calls[2]
+    assert all(pair["native"] == {"status": "passed", "score": 1.0} for pair in report["tasks"])
+    assert (args.output_dir / "native.json").is_file()
     assert report["summary"] == {
         "pairs": 5,
         "both_passed": 5,

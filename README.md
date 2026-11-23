@@ -35,14 +35,14 @@ done
 
 ### 配对评测
 
-配置模型凭据后运行。默认固定五道题、同一模型和工具配置，分别给出成本优先与速度优先指令。可用 `--tasks 域.任务名,域.任务名` 覆盖题目列表。
+配置模型凭据后运行。默认固定五道题，用同一模型运行原生工具、成本优先和速度优先三组。可用 `--tasks 域.任务名,域.任务名` 覆盖题目列表。
 
 ```sh
 uv run python -m automationbench.scripts.paired_eval --model gpt-4.1-mini \
   --output-dir visualizer/runs/local/paired-pilot
 ```
 
-输出 `cost.json`、`speed.json` 和 `comparison.json`。汇总保留失败与未完成的任务，按业务动作比较实际工具名和调用序列。费用节省值为速度组费用减成本组费用，时延节省值为成本组模拟时延减速度组模拟时延。
+输出 `native.json`、`cost.json`、`speed.json` 和 `comparison.json`。汇总保留失败与未完成的任务，按业务动作比较实际工具名和调用序列。费用节省值为速度组费用减成本组费用，时延节省值为成本组模拟时延减速度组模拟时延。
 
 ### 50 道长任务的成本与延迟实验
 
@@ -56,7 +56,7 @@ uv run python -m automationbench.scripts.paired_eval \
 
 跑完整 50 道时去掉 `--limit 5`，并指定新的输出目录。`--pilot50` 默认每题最多 64 个模型回合，每组最多运行 3600 秒，可通过 `--max-steps` 和 `--arm-timeout` 调整。
 
-两组使用相同的题面、初始状态、评分器和工具。系统提示词末尾分别追加成本优先或延迟优先的执行偏好。经济版每次 1 成本单位、300 ms 模拟延迟，快速版每次 3 成本单位、100 ms 模拟延迟。查看 `comparison.json` 中每题两组的任务得分、`variant_attempt_counts`、成本和模拟延迟。用任务得分和完成状态判断两组结果是否可比。
+三组使用相同的题面、初始状态和评分器。原生组使用每题指定的 `limited_zapier` 工具，执行偏好为中性。成本组和延迟组共享同一套变体，并在系统提示词末尾追加各自的执行偏好。经济版每次 1 成本单位、300 ms 模拟延迟，快速版每次 3 成本单位、100 ms 模拟延迟。查看 `comparison.json` 中每题三组的任务得分，以及两组变体的 `variant_attempt_counts`、成本和模拟延迟。用任务得分和完成状态判断两组结果是否可比。
 
 ### 带预算的配对评测
 
