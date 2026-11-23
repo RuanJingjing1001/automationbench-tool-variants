@@ -220,8 +220,11 @@ async def run_evaluation(
     variant_seed: int = 0,
     tool_preference: str = "neutral",
     tool_budget: int | None = None,
+    max_task_tokens: int | None = None,
 ) -> None:
     """Run AutomationBench evaluation."""
+    if max_task_tokens is not None and max_task_tokens < 1:
+        raise ValueError("max_task_tokens must be positive")
     # Create dataset and rubric
     dataset = get_combined_dataset(domains)
 
@@ -320,6 +323,7 @@ async def run_evaluation(
         search_top_k=search_top_k,
         variant_scenario=variant_scenario,
         variant_seed=variant_seed,
+        max_task_tokens=max_task_tokens,
     )
     console.print(f"[key]Toolset:[/key] {toolset}")
 
@@ -478,6 +482,7 @@ async def run_evaluation(
                 "_assertion_results": ro.get("_assertion_results"),
                 "_end_state": ro.get("_end_state"),
                 "_perf": ro.get("_perf"),
+                "stop_condition": ro.get("stop_condition"),
                 "tool_variants": ro.get("tool_variants"),
             }
         )
@@ -516,6 +521,8 @@ async def run_evaluation(
             extra_meta["tool_preference"] = tool_preference
         if tool_budget is not None:
             extra_meta["tool_budget"] = tool_budget
+        if max_task_tokens is not None:
+            extra_meta["max_task_tokens"] = max_task_tokens
         export_results(
             outputs,
             usage,
@@ -584,6 +591,9 @@ Examples:
         type=int,
         default=50,
         help="Maximum number of steps (model responses) per task (default: 50)",
+    )
+    parser.add_argument(
+        "--max-task-tokens", type=int, help="Stop each task at this cumulative model token threshold"
     )
     parser.add_argument(
         "--domains",
@@ -794,6 +804,7 @@ Examples:
             toolset=args.toolset,
             variant_scenario=args.variant_scenario,
             variant_seed=args.variant_seed,
+            max_task_tokens=args.max_task_tokens,
             tool_preference=args.tool_preference,
             max_concurrent=args.max_concurrent,
             search_top_k=args.search_top_k,

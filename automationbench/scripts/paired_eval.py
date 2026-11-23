@@ -24,6 +24,7 @@ PILOT_TASKS = (
     "operations.monday_email_update",
 )
 PREFERENCES = ("cost", "speed")
+DEFAULT_MAX_TASK_TOKENS = 400_000
 PILOT50_PATH = (
     Path(__file__).resolve().parents[2] / "benchmarks" / "holo4-effective-calls-gt10-pilot50.json"
 )
@@ -46,11 +47,15 @@ def arm_summary(
         return {"status": "missing"}
 
     report = task.get("tool_variants")
-    if (report is None and not native) or aborted or task.get("errors"):
+    if task.get("stop_condition") == "token_budget_exceeded":
+        status = "token_budget_exceeded"
+    elif (report is None and not native) or aborted or task.get("errors"):
         status = "incomplete"
     else:
         status = "passed" if task["passed"] else "failed"
     result = {"status": status, "score": task["score"]}
+    if "input_tokens" in task and "output_tokens" in task:
+        result["model_tokens"] = task["input_tokens"] + task["output_tokens"]
     if report is not None:
         cost = report["total_cost_units"]
         attempts = report["attempts"]
@@ -82,7 +87,11 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
                 by_arm[arm].get(name), name in aborted_by_arm[arm], budget, native=arm == "native"
             )
         cost, speed = pair["cost"], pair["speed"]
-        if "attempts" in cost and "attempts" in speed:
+        if (
+            "attempts" in cost
+            and "attempts" in speed
+            and all(pair[arm]["status"] != "token_budget_exceeded" for arm in PREFERENCES)
+        ):
             tools_by_action = []
             for result in (cost, speed):
                 grouped = {}
@@ -115,12 +124,21 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
                 any(pair[arm]["status"] in ("missing", "incomplete") for arm in arms)
                 for pair in pairs
             ),
+            "token_budget_exceeded_by_arm": {
+                arm: sum(pair[arm]["status"] == "token_budget_exceeded" for pair in pairs)
+                for arm in arms
+            },
         },
     }
 
 
 async def run_pair(
-    args, tasks: tuple[str, ...], domains: list[str], *, include_native: bool = False
+    args,
+    tasks: tuple[str, ...],
+    domains: list[str],
+    *,
+    include_native: bool = False,
+    max_task_tokens: int | None = None,
 ) -> dict:
     args.output_dir.mkdir(parents=True, exist_ok=False)
     runs = {}
@@ -146,6 +164,7 @@ async def run_pair(
                     tool_budget=None if native else args.budget,
                     max_turns=args.max_steps,
                     max_concurrent=args.max_concurrent,
+                    max_task_tokens=max_task_tokens,
                     export_json=str(raw_path),
                 )
             runs[arm] = json.loads(raw_path.read_text())
@@ -157,6 +176,8 @@ async def run_pair(
 
     report = compare_runs(tasks, runs, args.budget)
     report.update(model=args.model, scenario=scenario, budget=args.budget, run_errors=errors)
+    if max_task_tokens is not None:
+        report["max_task_tokens"] = max_task_tokens
     (args.output_dir / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
     return report
 
@@ -219,6 +240,12 @@ def main() -> None:
         "--max-steps", type=int, help="Model turns per task (pilot50: 64, otherwise: 16)"
     )
     parser.add_argument("--max-concurrent", type=int, default=2)
+    parser.add_argument(
+        "--max-task-tokens",
+        type=int,
+        default=DEFAULT_MAX_TASK_TOKENS,
+        help="Cumulative model tokens per task in each arm (default: 400000)",
+    )
     parser.add_argument("--variant-seed", type=int, default=0)
     parser.add_argument(
         "--budget", type=int, help="Tool cost ceiling stated in the variant prompts"
@@ -234,9 +261,10 @@ def main() -> None:
         args.arm_timeout < 1
         or args.max_steps < 1
         or args.max_concurrent < 1
+        or args.max_task_tokens < 1
         or (args.budget is not None and args.budget < 1)
     ):
-        parser.error("timeout, step limit, concurrency and optional budget must be positive")
+        parser.error("timeout, step limit, concurrency and token budgets must be positive")
     if args.output_dir.exists():
         parser.error("--output-dir must be a new directory")
     if args.pilot50:
@@ -257,7 +285,9 @@ def main() -> None:
         parser.error(str(exc))
     if unknown := set(tasks) - available:
         parser.error(f"unknown task IDs {', '.join(sorted(unknown))}")
-    report = asyncio.run(run_pair(args, tasks, domains, include_native=True))
+    report = asyncio.run(
+        run_pair(args, tasks, domains, include_native=True, max_task_tokens=args.max_task_tokens)
+    )
     print_report(report)
     print(f"Comparison saved to {args.output_dir / 'comparison.json'}")
     if report["summary"]["with_incomplete_arm"]:

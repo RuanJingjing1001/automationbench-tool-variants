@@ -66,6 +66,10 @@ def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, t
         if kwargs["toolset"] == "limited_zapier":
             for task in output["tasks"]:
                 task.pop("tool_variants")
+        elif kwargs["tool_preference"] == "cost":
+            output["tasks"][0].update(
+                stop_condition="token_budget_exceeded", input_tokens=400_000, output_tokens=1_000
+            )
         path.write_text(json.dumps(output))
 
     monkeypatch.setattr(paired_eval, "run_evaluation", evaluate)
@@ -82,7 +86,11 @@ def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, t
     )
     report = asyncio.run(
         paired_eval.run_pair(
-            args, first_five, ["hr", "finance", "operations", "marketing"], include_native=True
+            args,
+            first_five,
+            ["hr", "finance", "operations", "marketing"],
+            include_native=True,
+            max_task_tokens=400_000,
         )
     )
     assert [(call["tool_preference"], call["tasks"]) for call in calls] == [
@@ -94,14 +102,20 @@ def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, t
     for call in calls:
         call.pop("tool_preference")
     assert calls[0] == calls[1] == calls[2]
+    assert calls[0]["max_task_tokens"] == report["max_task_tokens"] == 400_000
     assert all(pair["native"] == {"status": "passed", "score": 1.0} for pair in report["tasks"])
     assert (args.output_dir / "native.json").is_file()
     assert report["summary"] == {
         "pairs": 5,
-        "both_passed": 5,
-        "with_tool_switch": 5,
+        "both_passed": 4,
+        "with_tool_switch": 4,
         "with_incomplete_arm": 0,
+        "token_budget_exceeded_by_arm": {"native": 0, "cost": 1, "speed": 0},
     }
+    capped = report["tasks"][0]
+    assert capped["cost"]["status"] == "token_budget_exceeded"
+    assert capped["cost"]["model_tokens"] == 401_000
+    assert "latency_saved_ms" not in capped
     assert (args.output_dir / "comparison.json").is_file()
 
 

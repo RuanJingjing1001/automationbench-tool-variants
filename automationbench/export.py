@@ -21,6 +21,8 @@ def is_aborted(task: dict[str, Any], step_cap: int) -> bool:
     of a rollout cut off mid-work by an infra/transient termination rather than a
     model decision or the step cap. See automationbench.scripts.complete_run for
     the healing loop that re-runs these."""
+    if task.get("stop_condition") == "token_budget_exceeded":
+        return False
     msgs = task.get("messages") or []
     if not msgs:
         return False
@@ -219,6 +221,8 @@ def export_results(
 
         if output.get("tool_variants") is not None:
             task_result["tool_variants"] = output["tool_variants"]
+        if output.get("stop_condition") == "token_budget_exceeded":
+            task_result["stop_condition"] = output["stop_condition"]
 
         # Add debug info if there were any issues
         if empty_responses:

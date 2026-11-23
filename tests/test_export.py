@@ -94,6 +94,15 @@ class TestAbortDetection:
         assert result["summary"]["aborted_tasks"] == ["domain.task_1"]
         assert result["meta"]["max_steps"] == 50
 
+    def test_token_threshold_stop_is_preserved_and_not_retried_as_an_abort(self):
+        outputs = _make_outputs(1)
+        outputs[0]["completion"] = _dangling_completion()
+        outputs[0]["stop_condition"] = "token_budget_exceeded"
+        result = export_results(outputs, _make_run_usage(1), "m", ["sales"])
+
+        assert result["tasks"][0]["stop_condition"] == "token_budget_exceeded"
+        assert result["summary"]["aborted_tasks"] == []
+
     def test_summary_empty_when_run_complete(self):
         outputs = _make_outputs(2)
         usage = _make_run_usage(2)

@@ -104,6 +104,7 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         search_top_k: int | None = None,  # Hard cap on search_tools top_k (None = no cap)
         variant_scenario: str = "cost-speed",
         variant_seed: int = 0,
+        max_task_tokens: int | None = None,
         **kwargs,
     ):
         # Initialize parent with empty tools (we'll add them with args_to_skip)
@@ -120,6 +121,7 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         self.toolset = toolset
         self.variant_scenario = variant_scenario
         self.variant_seed = variant_seed
+        self.max_task_tokens = max_task_tokens
         self._variant_names: dict[str, tuple[str, ...]] = {}
         # Meta-tools only for "zapier" toolset; "limited_zapier" and "api" use direct tool access
         if use_meta_tools is None:
@@ -332,7 +334,7 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
     def _extract_usage_and_debug(self, state: vf.State) -> None:
         """Extract token usage and debug info from the latest trajectory step.
 
-        Called at env_response time to process the most recent model response.
+        Called when a model response is added to the trajectory, including the final turn.
         Reads from state["trajectory"][-1]["response"] (a vf.Response object).
         """
         trajectory = state.get("trajectory", [])
@@ -349,8 +351,8 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         if usage is not None:
             if "_usage" not in state:
                 state["_usage"] = {"input_tokens": 0, "output_tokens": 0}
-            state["_usage"]["input_tokens"] += getattr(usage, "prompt_tokens", 0)
-            state["_usage"]["output_tokens"] += getattr(usage, "completion_tokens", 0)
+            state["_usage"]["input_tokens"] += getattr(usage, "prompt_tokens", 0) or 0
+            state["_usage"]["output_tokens"] += getattr(usage, "completion_tokens", 0) or 0
 
         # Capture finish_reason and detect empty responses for debugging
         msg = getattr(response, "message", None)
@@ -377,6 +379,23 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
                 f"[DEBUG] Empty response for {task_name}: finish_reason={finish_reason}, completion_tokens={completion_tokens}",
                 file=sys.stderr,
             )
+
+    async def add_model_response(
+        self, state: vf.State, prompt_messages: vf.Messages, response: vf.Response
+    ) -> None:
+        await super().add_model_response(state, prompt_messages, response)
+        self._extract_usage_and_debug(state)
+
+    @vf.stop(priority=-1)
+    async def token_budget_exceeded(self, state: vf.State) -> bool:
+        """Stop before the next tool batch and model request once usage reaches the threshold."""
+        if self.max_task_tokens is None:
+            return False
+        usage = state.get("_usage") or {}
+        # Anthropic's normalized prompt tokens exclude cache reads and writes.
+        extra_input = (state.get("_perf") or {}).get("extra_input_tokens", 0)
+        total = usage.get("input_tokens", 0) + usage.get("output_tokens", 0) + extra_input
+        return total >= self.max_task_tokens
 
     def _compress_meta_messages(
         self,
@@ -447,9 +466,6 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         **kwargs: Any,
     ) -> vf.Messages:
         """Process tool calls. In meta-tools mode, compress old search results."""
-        # Extract usage/debug from the latest model response before processing tool calls
-        self._extract_usage_and_debug(state)
-
         # Count the tool calls in this turn and time their execution. super()
         # runs the turn's tool calls (sequentially) inside env_response, so wall
         # time around it is tool-execution time. Accumulated per task into _perf.

@@ -156,6 +156,7 @@ async def _rerun(
         variant_seed=meta.get("variant_seed", 0),
         tool_preference=meta.get("tool_preference", "neutral"),
         tool_budget=meta.get("tool_budget"),
+        max_task_tokens=meta.get("max_task_tokens"),
         max_concurrent=max_concurrent,
         batch=bool(meta.get("batch")) if batch is None else batch,
         batch_linger_seconds=batch_linger_seconds,
