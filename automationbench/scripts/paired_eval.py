@@ -505,11 +505,19 @@ def main() -> None:
         "--max-steps", type=int, help="Model turns per task (pilots: 64, otherwise: 16)"
     )
     parser.add_argument("--max-concurrent", type=int, default=2)
-    parser.add_argument(
+    token_budget = parser.add_mutually_exclusive_group()
+    token_budget.add_argument(
         "--max-task-tokens",
         type=int,
         default=DEFAULT_MAX_TASK_TOKENS,
         help="Cumulative model tokens per task in each arm (default: 400000)",
+    )
+    token_budget.add_argument(
+        "--no-task-token-cap",
+        action="store_const",
+        const=None,
+        dest="max_task_tokens",
+        help="Disable the cumulative per-task token threshold",
     )
     parser.add_argument("--variant-seed", type=int, default=0)
     parser.add_argument(
@@ -534,7 +542,7 @@ def main() -> None:
         args.arm_timeout < 1
         or args.max_steps < 1
         or args.max_concurrent < 1
-        or args.max_task_tokens < 1
+        or (args.max_task_tokens is not None and args.max_task_tokens < 1)
         or (args.budget is not None and args.budget < 1)
     ):
         parser.error("timeout, step limit, concurrency and token budgets must be positive")
