@@ -21,7 +21,7 @@ class Profile:
     latency_ms: int
     timeout_probability: float = 0.0
     max_rows: int | None = None
-    timeout_ms: int | None = None
+    failure_probability: float | None = None
 
     @property
     def description(self) -> str:
@@ -30,12 +30,12 @@ class Profile:
             if self.max_rows is None
             else f"Returns at most {self.max_rows} rows per call."
         )
-        if self.timeout_ms is not None:
+        if self.failure_probability is not None:
             return (
-                f"Per attempt: {self.cost_units} cost units. Simulated latency on normal "
-                f"return: {self.latency_ms} ms. Pre-execution timeout probability: "
-                f"{self.timeout_probability:.0%}. A timeout takes {self.timeout_ms} ms, "
-                f"costs the same, and is retryable. {coverage}"
+                f"Per attempt: {self.cost_units} cost units and {self.latency_ms} ms simulated "
+                f"latency. Retryable pre-execution failure probability: "
+                f"{self.failure_probability:.0%}. Failed attempts have the same cost and latency. "
+                f"{coverage}"
             )
         return (
             f"Per attempt: {self.cost_units} cost units, {self.latency_ms} ms simulated "
@@ -46,6 +46,7 @@ class Profile:
 ECONOMY = Profile("economy", 1, 300)
 MULTI_OBJECTIVE = "multi-objective"
 MULTI_OBJECTIVE_PROFILE_SCOPE = "all-actions"
+MULTI_OBJECTIVE_FAULT_MODEL = "pre-execution-failure"
 SCENARIOS = {
     "cost-speed": (ECONOMY, Profile("fast", 3, 100)),
     "budget-speed": (ECONOMY, Profile("fast", 3, 100)),
@@ -55,9 +56,9 @@ SCENARIOS = {
     ),
     "quality": (ECONOMY, Profile("standard", 3, 300)),
     MULTI_OBJECTIVE: (
-        Profile("economy", 1, 300, timeout_probability=0.10, timeout_ms=1000),
-        Profile("fast", 2, 100, timeout_probability=0.10, timeout_ms=1000),
-        Profile("reliable", 2, 300, timeout_probability=0.01, timeout_ms=1000),
+        Profile("economy", 1, 300, failure_probability=0.10),
+        Profile("fast", 2, 100, failure_probability=0.10),
+        Profile("reliable", 2, 300, failure_probability=0.01),
     ),
 }
 # Action-specific latency gains for the budget pilot.
@@ -76,7 +77,7 @@ PREFERENCES = {
     "neutral": "",
     "cost": "Complete the task correctly while minimizing total tool cost units.",
     "speed": "Complete the task correctly while minimizing total simulated tool latency.",
-    "stability": "Prioritize completing the task with as few tool timeouts as possible.",
+    "stability": "Prioritize completing the task with as few failed tool calls as possible.",
     "quality": "Prioritize complete and correct results even if tools cost more.",
 }
 
@@ -88,7 +89,7 @@ class VariantExecution:
     report: dict
     example_id: int | None = None
     attempts_by_call: Counter[str] = field(default_factory=Counter)
-    pending_timeouts: set[str] = field(default_factory=set)
+    pending_failures: set[str] = field(default_factory=set)
 
     @classmethod
     def start(cls, allowed_names, scenario: str, seed: int, example_id: int | None):
@@ -101,6 +102,11 @@ class VariantExecution:
                 "total_cost_units": 0,
                 "total_simulated_latency_ms": 0,
                 "injected_timeouts": 0,
+                **(
+                    {"fault_model": MULTI_OBJECTIVE_FAULT_MODEL, "injected_failures": 0}
+                    if scenario == MULTI_OBJECTIVE
+                    else {}
+                ),
                 "attempts": [],
             },
             example_id=example_id,
@@ -185,34 +191,25 @@ def _wrap(tool: Callable, profile: Profile) -> Callable:
         attempts.append(attempt)
         report["total_cost_units"] += profile.cost_units
         call_id = None
-        latency = profile.latency_ms
-        if profile.timeout_ms is None:
-            timed_out = execution.random.random() < profile.timeout_probability
+        report["total_simulated_latency_ms"] += profile.latency_ms
+        if profile.failure_probability is None:
+            if execution.random.random() < profile.timeout_probability:
+                attempt["status"] = "injected_timeout"
+                report["injected_timeouts"] += 1
+                return json.dumps({"error": "Simulated tool timeout", "retryable": True})
         else:
-            # Charge invalid arguments at normal latency and keep the usual tool error.
-            try:
-                bound = original_signature.bind(*args, **kwargs)
-            except TypeError:
-                report["total_simulated_latency_ms"] += latency
-                raise
+            attempt.pop("timeout_probability")
+            attempt["failure_probability"] = profile.failure_probability
+            bound = original_signature.bind(*args, **kwargs)
             bound.apply_defaults()
             call_id = _tool_call_id(action, bound.arguments)
             fault_attempt, draw = execution.fault_draw(call_id)
-            timed_out = draw < profile.timeout_probability
-            if timed_out:
-                latency = profile.timeout_ms
-                execution.pending_timeouts.add(call_id)
-            attempt.update(
-                fault_call_id=call_id,
-                fault_attempt=fault_attempt,
-                simulated_latency_ms=latency,
-            )
-
-        report["total_simulated_latency_ms"] += latency
-        if timed_out:
-            attempt["status"] = "injected_timeout"
-            report["injected_timeouts"] += 1
-            return json.dumps({"error": "Simulated tool timeout", "retryable": True})
+            attempt.update(fault_call_id=call_id, fault_attempt=fault_attempt)
+            if draw < profile.failure_probability:
+                attempt["status"] = "injected_failure"
+                report["injected_failures"] += 1
+                execution.pending_failures.add(call_id)
+                return json.dumps({"error": "Simulated tool failure", "retryable": True})
 
         if profile.max_rows is not None:
             # The Sheets action owns the limit and updates its paging metadata.
@@ -225,9 +222,9 @@ def _wrap(tool: Callable, profile: Profile) -> Callable:
         else:
             result = tool(*args, **kwargs)
         attempt["status"] = "returned"
-        if call_id in execution.pending_timeouts and _reported_success(result):
-            execution.pending_timeouts.remove(call_id)
-            attempt["recovered_after_timeout"] = True
+        if call_id in execution.pending_failures and _reported_success(result):
+            execution.pending_failures.remove(call_id)
+            attempt["recovered_after_failure"] = True
         return result
 
     variant.__name__ = name

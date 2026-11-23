@@ -199,8 +199,8 @@ def test_multi_objective_paired_run_reports_three_preferences(monkeypatch, tmp_p
         calls.append(kwargs)
         task = make_task("t", True, 3, 1300, [("find", "find_economy"), ("find", "find_reliable")])
         variant = task["tool_variants"]
-        variant.update(scenario=MULTI_OBJECTIVE, injected_timeouts=1)
-        variant["attempts"][-1]["recovered_after_timeout"] = True
+        variant.update(scenario=MULTI_OBJECTIVE, injected_failures=1)
+        variant["attempts"][-1]["recovered_after_failure"] = True
         Path(kwargs["export_json"]).write_text(json.dumps({"tasks": [task]}))
 
     monkeypatch.setattr(paired_eval, "run_evaluation", evaluate)
@@ -211,7 +211,7 @@ def test_multi_objective_paired_run_reports_three_preferences(monkeypatch, tmp_p
     assert all(call["toolset"] == "variants" and call["variant_seed"] == 7 for call in calls)
     assert report["variant_seed"] == 7
     assert report["variant_profile_scope"] == "all-actions"
-    assert report["tasks"][0]["stability"]["recovered_timeouts"] == 1
+    assert report["tasks"][0]["stability"]["recovered_failures"] == 1
     assert report["summary"]["by_arm"]["stability"]["total_simulated_latency_ms"] == 1300
     assert report["summary"]["by_arm"]["stability"]["strict_pass_rate"] == 1.0
 
@@ -291,3 +291,52 @@ def test_resume_adds_tasks_and_only_retries_incomplete_arms(monkeypatch, tmp_pat
     with pytest.raises(ValueError, match="variant_seed"):
         run((first, second))
     assert not calls
+
+
+@pytest.mark.parametrize("resume", [False, True])
+def test_native_gate_runs_variants_only_after_a_valid_full_native_score(
+    monkeypatch, tmp_path, resume
+):
+    eligible, low, interrupted = ("hr.eligible", "hr.low", "hr.interrupted")
+    calls = []
+
+    async def evaluate(**kwargs):
+        names = kwargs["tasks"].split(",")
+        preference = kwargs["tool_preference"]
+        calls.append((preference, names))
+        tasks = []
+        for name in names:
+            task = make_task(name, name != low, 1, 300, [])
+            if preference == "neutral":
+                del task["tool_variants"]
+                if name == interrupted:
+                    task["errors"] = ["connection error"]
+            tasks.append(task)
+        Path(kwargs["export_json"]).write_text(json.dumps({"tasks": tasks}))
+
+    monkeypatch.setattr(paired_eval, "run_evaluation", evaluate)
+    args = SimpleNamespace(
+        output_dir=tmp_path / "run",
+        model="test",
+        base_url=None,
+        api="chat_completions",
+        budget=None,
+        variant_seed=0,
+        max_steps=64,
+        max_concurrent=1,
+        arm_timeout=60,
+        native_pass_only=True,
+        resume=resume,
+    )
+    report = asyncio.run(
+        paired_eval.run_pair(
+            args, (eligible, low, interrupted), ["hr"], variant_scenario=MULTI_OBJECTIVE
+        )
+    )
+    assert [entry for entry in calls if entry[0] != "neutral"] == [
+        (arm, [eligible]) for arm in ("cost", "speed", "stability")
+    ]
+    assert report["summary"]["native_eligible_tasks"] == [eligible]
+    assert report["summary"]["with_incomplete_arm"] == 1
+    assert report["tasks"][1]["cost"]["status"] == "skipped_native_gate"
+    assert report["summary"]["by_arm"]["cost"]["scored_tasks"] == 1

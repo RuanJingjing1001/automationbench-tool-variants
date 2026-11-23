@@ -17,7 +17,7 @@ Learn more at [zapier.com/benchmarks](https://zapier.com/benchmarks) or run it o
 | `cost-speed`（默认） | `economy` / `fast` | 每次 1 单位 / 300 ms 与 3 单位 / 100 ms。 |
 | `stability` | `economy` / `reliable` | 两版均 300 ms，费用分别为 1 和 3 单位，执行前超时概率分别为 10% 和 1%。 |
 | `quality` | `economy` / `standard` | 两版均 300 ms，费用分别为 1 和 3 单位。仅 `google_sheets_find_many_rows` 的省钱版每次最多返回 5 行，标准版使用原有参数和返回上限。使用数据超过 5 行且实际需要这些行的题检验质量差异。 |
-| `multi-objective` | 所有业务动作提供 `economy` / `fast` / `reliable` | 同时评估成本、模拟延迟、故障恢复和任务得分。 |
+| `multi-objective` | 所有业务动作提供 `economy` / `fast` / `reliable` | 同时评估成本、模拟延迟、调用失败和任务得分。 |
 
 使用已配置凭据的模型运行同一任务两次。以下以 OpenAI 接口为例，需设置 `OPENAI_API_KEY`。
 
@@ -38,13 +38,13 @@ done
 
 `multi-objective` 为每道题开放的所有业务动作提供下列版本，涵盖搜索、读取、发邮件、写表等操作。题面、初始状态和评分器沿用原任务。各版本共享业务参数和实现。
 
-| 版本 | 每次尝试成本 | 正常返回模拟延迟 | 单次超时概率 |
+| 版本 | 每次尝试成本 | 每次尝试模拟延迟 | 单次注入失败概率 |
 | --- | ---: | ---: | ---: |
 | `economy` | 1 | 300 ms | 10% |
 | `fast` | 2 | 100 ms | 10% |
 | `reliable` | 2 | 300 ms | 1% |
 
-超时在底层工具执行前返回可重试错误，计入该版本的单次成本和 1,000 ms 模拟延迟。该次超时不会发送邮件、插入行或产生其他写入。对应的故障抽样由种子、任务实例、原子动作、归一化参数和该调用的尝试序号确定。切换版本和插入其他调用都不改变对应尝试的随机数。此后同一调用明确返回成功时记作一次恢复，连续多次超时后成功也计一次恢复。
+注入失败在底层工具执行前返回可重试错误。失败和成功的尝试都按对应版本计费和计时，重试作为新尝试计入。故障抽样由种子、任务实例、原子动作、归一化参数和该调用的尝试序号确定。相同调用和尝试序号沿用同一抽样值，模型所选版本决定失败概率。此后同一调用明确返回成功时记作一次恢复。新结果带有 `variant_fault_model: "pre-execution-failure"`，分析旧结果时仍按其超时口径解释。
 
 ```sh
 uv run python -m automationbench.scripts.paired_eval \
@@ -53,7 +53,9 @@ uv run python -m automationbench.scripts.paired_eval \
   --output-dir visualizer/runs/local/multi-objective-seed0
 ```
 
-输出 `cost.json`、`speed.json`、`stability.json` 和 `comparison.json`。三组使用相同的工具菜单和故障种子，只改变执行偏好。汇总展示工具成本、模拟延迟、超时与恢复次数、任务得分和 token 触顶。逐题展示各组实际版本与调用记录。新版结果标记为 `variant_profile_scope: "all-actions"`，可与此前仅三个读取动作具有可靠版的实验区分。
+输出 `cost.json`、`speed.json`、`stability.json` 和 `comparison.json`。三组使用相同的工具菜单和故障种子，只改变执行偏好。汇总展示工具成本、模拟延迟、注入失败数与尝试总数、恢复次数、任务得分和 token 触顶。逐题展示各组实际版本与调用记录。
+
+加上 `--native-pass-only` 会先对所选任务跑 Native，再为 Native 满分的任务跑三个变体组。汇总保留全部 Native 得分，变体组的分母是通过筛选的题数，未入选的题标记为 `skipped_native_gate`。可以配合 `--resume` 分批追加题目。切换到新版失败模型时使用新输出目录。
 
 ### 配对评测
 

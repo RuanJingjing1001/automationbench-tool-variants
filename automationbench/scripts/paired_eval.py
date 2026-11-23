@@ -22,6 +22,7 @@ from automationbench.scripts.complete_run import recompute_aggregates
 from automationbench.scripts.eval import _task_name, run_evaluation
 from automationbench.tool_variants import (
     MULTI_OBJECTIVE,
+    MULTI_OBJECTIVE_FAULT_MODEL,
     MULTI_OBJECTIVE_PROFILE_SCOPE,
     PREFERENCES as EXECUTION_PREFERENCES,
     SCENARIOS,
@@ -84,17 +85,37 @@ def arm_summary(
             attempts=attempts,
             variant_attempt_counts=dict(versions),
         )
-        if report.get("scenario") == MULTI_OBJECTIVE:
+        if "injected_failures" in report:
+            failures = report["injected_failures"]
+            result.update(
+                injected_failures=failures,
+                tool_attempt_count=len(attempts),
+                injected_failure_rate=failures / len(attempts) if attempts else None,
+                recovered_failures=sum(a.get("recovered_after_failure", False) for a in attempts),
+            )
+        elif report.get("scenario") == MULTI_OBJECTIVE:
             result["recovered_timeouts"] = sum(
                 attempt.get("recovered_after_timeout", False) for attempt in attempts
             )
     return result
 
 
-def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict:
+def native_full_score_tasks(run: dict) -> set[str]:
+    aborted = set(run.get("summary", {}).get("aborted_tasks", []))
+    return {
+        task["name"]
+        for task in run.get("tasks", [])
+        if task.get("score") == 1.0 and task["name"] not in aborted and not task.get("errors")
+    }
+
+
+def compare_runs(
+    tasks: tuple[str, ...], runs: dict, budget: int | None, *, native_pass_only: bool = False
+) -> dict:
     arms = ("native", *PREFERENCES) if "native" in runs else PREFERENCES
     if "stability" in runs:
         arms = (*arms, "stability")
+    eligible = native_full_score_tasks(runs.get("native", {})) if native_pass_only else set(tasks)
     by_arm = {
         arm: {task["name"]: task for task in runs.get(arm, {}).get("tasks", [])} for arm in arms
     }
@@ -105,6 +126,9 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
     for name in tasks:
         pair = {"task": name}
         for arm in arms:
+            if arm != "native" and name not in eligible:
+                pair[arm] = {"status": "skipped_native_gate"}
+                continue
             pair[arm] = arm_summary(
                 by_arm[arm].get(name), name in aborted_by_arm[arm], budget, native=arm == "native"
             )
@@ -123,7 +147,13 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
             pair["tool_metric_deltas"] = {
                 f"{right}_minus_{left}": {
                     key: pair[right][key] - pair[left][key]
-                    for key in ("cost_units", "simulated_latency_ms", "injected_timeouts")
+                    for key in (
+                        "cost_units",
+                        "simulated_latency_ms",
+                        "injected_failures",
+                        "injected_timeouts",
+                    )
+                    if key in pair[left] and key in pair[right]
                 }
                 for left, right in combinations(comparable, 2)
             }
@@ -179,7 +209,17 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
                         result.get("recovered_timeouts", 0) for result in tool_results
                     ),
                 )
-    return {
+                failure_results = [r for r in tool_results if "injected_failures" in r]
+                if failure_results:
+                    failures = sum(r["injected_failures"] for r in failure_results)
+                    attempts = sum(r["tool_attempt_count"] for r in failure_results)
+                    by_arm_metrics[arm].update(
+                        injected_failures=failures,
+                        recovered_failures=sum(r["recovered_failures"] for r in failure_results),
+                        tool_attempt_count=attempts,
+                        injected_failure_rate=failures / attempts if attempts else None,
+                    )
+    report = {
         "tasks": pairs,
         "summary": {
             "pairs": len(pairs),
@@ -198,6 +238,9 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
             },
         },
     }
+    if native_pass_only:
+        report["summary"]["native_eligible_tasks"] = [name for name in tasks if name in eligible]
+    return report
 
 
 async def run_pair(
@@ -210,6 +253,8 @@ async def run_pair(
     variant_scenario: str | None = None,
 ) -> dict:
     resume = getattr(args, "resume", False)
+    native_pass_only = getattr(args, "native_pass_only", False)
+    include_native = include_native or native_pass_only
     scenario = variant_scenario or ("budget-speed" if args.budget is not None else "cost-speed")
     arms = ("native", *PREFERENCES) if include_native else PREFERENCES
     if scenario == MULTI_OBJECTIVE:
@@ -244,7 +289,15 @@ async def run_pair(
             "api": args.api,
             "arms": list(arms),
             "scenario": scenario,
-            "profiles": [asdict(profile) for profile in SCENARIOS[scenario]],
+            "profiles": [
+                asdict(profile)
+                if scenario == MULTI_OBJECTIVE
+                else {
+                    **{k: v for k, v in asdict(profile).items() if k != "failure_probability"},
+                    "timeout_ms": None,
+                }
+                for profile in SCENARIOS[scenario]
+            ],
             "preferences": {arm: EXECUTION_PREFERENCES.get(arm, "") for arm in arms},
             "variant_seed": args.variant_seed,
             "profile_scope": MULTI_OBJECTIVE_PROFILE_SCOPE if scenario == MULTI_OBJECTIVE else None,
@@ -252,6 +305,10 @@ async def run_pair(
             "max_steps": args.max_steps,
             "max_task_tokens": max_task_tokens,
         }
+        if native_pass_only:
+            config["native_pass_only"] = True
+        if scenario == MULTI_OBJECTIVE:
+            config["fault_model"] = MULTI_OBJECTIVE_FAULT_MODEL
         args.output_dir.mkdir(parents=True, exist_ok=True)
         with (args.output_dir / ".resume.lock").open("a") as lock:
             try:
@@ -265,10 +322,20 @@ async def run_pair(
         runs, errors = {}, {}
         for arm in arms:
             raw_path = args.output_dir / f"{arm}.json"
+            requested = tasks
+            if native_pass_only and arm != "native":
+                eligible = native_full_score_tasks(runs["native"])
+                requested = tuple(name for name in tasks if name in eligible)
+            if not requested:
+                runs[arm] = {"tasks": []}
+                write_json(raw_path, runs[arm])
+                continue
             print(f"Running {arm} arm", flush=True)
             try:
                 async with asyncio.timeout(args.arm_timeout):
-                    runs[arm] = await evaluate(arm, tasks, domains, raw_path, args.max_concurrent)
+                    runs[arm] = await evaluate(
+                        arm, requested, domains, raw_path, args.max_concurrent
+                    )
             except Exception as exc:
                 errors[arm] = type(exc).__name__
                 runs[arm] = {}
@@ -278,11 +345,14 @@ async def run_pair(
 
 
 def save_comparison(args, tasks, runs, errors, scenario, max_task_tokens):
-    report = compare_runs(tasks, runs, args.budget)
+    report = compare_runs(
+        tasks, runs, args.budget, native_pass_only=getattr(args, "native_pass_only", False)
+    )
     report.update(model=args.model, scenario=scenario, budget=args.budget, run_errors=errors)
     if scenario == MULTI_OBJECTIVE:
         report["variant_seed"] = args.variant_seed
         report["variant_profile_scope"] = MULTI_OBJECTIVE_PROFILE_SCOPE
+        report["variant_fault_model"] = MULTI_OBJECTIVE_FAULT_MODEL
     if max_task_tokens is not None:
         report["max_task_tokens"] = max_task_tokens
     write_json(args.output_dir / "comparison.json", report)
@@ -308,7 +378,11 @@ async def run_resumable(args, requested, arms, config, evaluate):
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text())
         old_config = manifest["config"]
-        changed = [key for key in config if old_config.get(key) != config[key]]
+        changed = [
+            key
+            for key in sorted(old_config.keys() | config.keys())
+            if old_config.get(key) != config.get(key)
+        ]
         if changed or manifest.get("version") != 1:
             raise ValueError(f"resume configuration changed: {', '.join(changed) or 'format'}")
         previous = manifest["tasks"]
@@ -319,10 +393,14 @@ async def run_resumable(args, requested, arms, config, evaluate):
     write_json(manifest_path, {"version": 1, "config": config, "tasks": list(tasks)})
     runs, errors = {}, {}
     for arm in arms:
+        arm_tasks = tasks
+        if config.get("native_pass_only") and arm != "native":
+            eligible = native_full_score_tasks(runs["native"])
+            arm_tasks = tuple(name for name in tasks if name in eligible)
         checkpoints = directory / ".rollouts" / arm
         checkpoints.mkdir(parents=True, exist_ok=True)
         records, pending, arm_errors = {}, [], {}
-        for name in tasks:
+        for name in arm_tasks:
             path = checkpoints / f"{sha256(name.encode()).hexdigest()}.json"
             if path.exists():
                 records[name] = json.loads(path.read_text())
@@ -369,7 +447,7 @@ async def run_resumable(args, requested, arms, config, evaluate):
         if arm_errors:
             errors[arm] = arm_errors
 
-        exports = [records[name] for name in tasks if name in records]
+        exports = [records[name] for name in arm_tasks if name in records]
         rows = [dict(result["tasks"][0], id=index) for index, result in enumerate(exports, 1)]
         meta = dict(exports[0].get("meta", {})) if exports else {}
         meta.update(
@@ -407,30 +485,46 @@ def print_report(report: dict) -> None:
         "Arm", "Scored / scheduled", "Avg. task score", "Strict pass rate", "Token cap hits"
     )
     multi_objective = report.get("scenario") == MULTI_OBJECTIVE
+    failure_model = report.get("variant_fault_model") == MULTI_OBJECTIVE_FAULT_MODEL
+    eligible = summary.get("native_eligible_tasks")
+    if eligible is not None:
+        console.print(
+            f"Native full score: {len(eligible)}/{summary['pairs']} tasks eligible for variants"
+        )
     if multi_objective:
-        for heading in ("Total cost", "Total ms", "Timeouts", "Recoveries"):
+        faults_heading = "Failures / attempts" if failure_model else "Timeouts"
+        for heading in ("Total cost", "Total ms", faults_heading, "Recoveries"):
             metrics_table.add_column(heading, justify="right")
     for arm, metrics in summary["by_arm"].items():
         avg_score = metrics["avg_score"]
         pass_rate = metrics["strict_pass_rate"]
+        scheduled = len(eligible) if eligible is not None and arm != "native" else summary["pairs"]
+        tool_columns = []
+        if multi_objective:
+            tool_columns = [
+                str(metrics.get(key, "–"))
+                for key in ("total_cost_units", "total_simulated_latency_ms")
+            ]
+            if failure_model:
+                failures = metrics.get("injected_failures")
+                fault_count = (
+                    f"{failures}/{metrics['tool_attempt_count']}" if failures is not None else "–"
+                )
+                tool_columns.extend([fault_count, str(metrics.get("recovered_failures", "–"))])
+            else:
+                tool_columns.extend(
+                    str(metrics.get(key, "–"))
+                    for key in ("injected_timeouts", "recovered_timeouts")
+                )
         metrics_table.add_row(
             arm.title(),
-            f"{metrics['scored_tasks']}/{summary['pairs']}",
+            f"{metrics['scored_tasks']}/{scheduled}",
             f"{avg_score:.1%}" if avg_score is not None else "–",
             f"{pass_rate:.1%} ({metrics['strict_pass_count']}/{metrics['scored_tasks']})"
             if pass_rate is not None
             else "–",
             str(summary["token_budget_exceeded_by_arm"][arm]),
-            *(
-                str(metrics.get(key, "–"))
-                for key in (
-                    "total_cost_units",
-                    "total_simulated_latency_ms",
-                    "injected_timeouts",
-                    "recovered_timeouts",
-                )
-                if multi_objective
-            ),
+            *tool_columns,
         )
     console.print(metrics_table)
 
@@ -449,11 +543,15 @@ def print_report(report: dict) -> None:
             status = result["status"]
             score = result.get("score")
             label = f"{score:.1%}" if score is not None else "–"
-            if status not in ("passed", "failed"):
+            if status == "skipped_native_gate":
+                label = "native gate"
+            elif status not in ("passed", "failed"):
                 label += "\n" + ("token cap" if status == "token_budget_exceeded" else status)
             if "cost_units" in result:
                 label += f"\n{result['cost_units']}u/{result['simulated_latency_ms']}ms"
-            if "recovered_timeouts" in result:
+            if "recovered_failures" in result:
+                label += f"\n{result['injected_failures']}/{result['tool_attempt_count']} failed, {result['recovered_failures']} recovered"
+            elif "recovered_timeouts" in result:
                 label += f"\n{result['injected_timeouts']} timeouts/{result['recovered_timeouts']} recovered"
             if result.get("within_budget") is False:
                 label += "\nover budget"
@@ -494,6 +592,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--include-native", action="store_true", help="Also run the original tools without variants"
+    )
+    parser.add_argument(
+        "--native-pass-only",
+        action="store_true",
+        help="Run Native first and variants only for tasks with a full Native score",
     )
     parser.add_argument(
         "--output-dir", type=Path, required=True, help="Report directory (reuse with --resume)"

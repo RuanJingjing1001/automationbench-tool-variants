@@ -174,7 +174,7 @@ async def test_stability_timeout_is_reproducible_and_precedes_writes(envs):
     assert reports[0]["total_cost_units"] == 1
 
 
-async def test_multi_objective_charges_timeout_and_matches_faults_across_versions(
+async def test_multi_objective_charges_normal_latency_and_matches_failures_across_versions(
     envs, monkeypatch
 ):
     env = envs[MULTI_OBJECTIVE]
@@ -200,15 +200,15 @@ async def test_multi_objective_charges_timeout_and_matches_faults_across_version
     assert "google_sheets_update_row_reliable" in names
 
     await call(env, speed, "gmail_find_email_economy", query="procedures")
-    for state, version, fee in ((cost, "economy", 1), (speed, "fast", 2)):
+    for state, version, fee, latency in ((cost, "economy", 1, 300), (speed, "fast", 2, 100)):
         result = await call(env, state, f"{action}_{version}", **arguments)
-        assert result["retryable"] is True
+        assert result == {"error": "Simulated tool failure", "retryable": True}
         attempt = state["tool_variants"]["attempts"][-1]
-        assert attempt["status"] == "injected_timeout"
+        assert attempt["status"] == "injected_failure"
         assert attempt["fault_call_id"] == call_id
         assert attempt["fault_attempt"] == 1
         assert attempt["cost_units"] == fee
-        assert attempt["simulated_latency_ms"] == 1000
+        assert attempt["simulated_latency_ms"] == latency
 
     success = await call(env, stable, f"{action}_reliable", **arguments)
     # Passing equivalent spreadsheet/worksheet aliases matches the original read.
@@ -222,11 +222,11 @@ async def test_multi_objective_charges_timeout_and_matches_faults_across_version
     assert [row["cells"] for row in recovered["rows"]] == [row["cells"] for row in success["rows"]]
     assert success["result_count"] > 0
     report = cost["tool_variants"]
-    assert report["injected_timeouts"] == 1
+    assert report["injected_failures"] == 1
     assert report["total_cost_units"] == 3
-    assert report["total_simulated_latency_ms"] == 1300
+    assert report["total_simulated_latency_ms"] == 600
     assert report["attempts"][-1]["fault_attempt"] == 2
-    assert report["attempts"][-1]["recovered_after_timeout"] is True
+    assert report["attempts"][-1]["recovered_after_failure"] is True
 
 
 @pytest.mark.parametrize(
@@ -243,7 +243,7 @@ async def test_multi_objective_charges_timeout_and_matches_faults_across_version
         ),
     ],
 )
-async def test_multi_objective_timeout_precedes_write_and_retry_executes_once(
+async def test_multi_objective_failure_precedes_write_and_retry_executes_once(
     envs, monkeypatch, action, arguments
 ):
     env = envs[MULTI_OBJECTIVE]
@@ -269,8 +269,8 @@ async def test_multi_objective_timeout_precedes_write_and_retry_executes_once(
 
     report = state["tool_variants"]
     assert [a["fault_call_id"] for a in report["attempts"]] == [call_id, call_id]
-    assert report["attempts"][1]["recovered_after_timeout"] is True
-    assert (report["total_cost_units"], report["total_simulated_latency_ms"]) == (3, 1300)
+    assert report["attempts"][1]["recovered_after_failure"] is True
+    assert (report["total_cost_units"], report["total_simulated_latency_ms"]) == (3, 600)
     if action is gmail_send_email:
         assert len(world.gmail.messages) == len(original["gmail"]["messages"]) + 1
     else:
