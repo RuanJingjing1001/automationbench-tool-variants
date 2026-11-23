@@ -4,6 +4,7 @@
 
 import argparse
 import asyncio
+from collections import Counter
 import json
 import os
 from pathlib import Path
@@ -23,6 +24,19 @@ PILOT_TASKS = (
     "operations.monday_email_update",
 )
 PREFERENCES = ("cost", "speed")
+PILOT50_PATH = (
+    Path(__file__).resolve().parents[2] / "benchmarks" / "holo4-effective-calls-gt10-pilot50.json"
+)
+
+
+def load_pilot50(limit: int | None = None) -> tuple[str, ...]:
+    manifest = json.loads(PILOT50_PATH.read_text())
+    tasks = tuple(row["task"] for row in manifest["tasks"])
+    if len(tasks) != 50 or len(set(tasks)) != 50 or manifest["sample_size"] != 50:
+        raise ValueError("pilot50 manifest must contain 50 unique task IDs")
+    if limit is not None and not 1 <= limit <= len(tasks):
+        raise ValueError("pilot50 limit must be between 1 and 50")
+    return tasks[:limit]
 
 
 def arm_summary(task: dict | None, aborted: bool, budget: int | None) -> dict:
@@ -37,12 +51,15 @@ def arm_summary(task: dict | None, aborted: bool, budget: int | None) -> dict:
     result = {"status": status, "score": task["score"]}
     if report is not None:
         cost = report["total_cost_units"]
+        attempts = report["attempts"]
+        versions = Counter(attempt["tool"].rsplit("_", 1)[-1] for attempt in attempts)
         result.update(
             cost_units=cost,
             simulated_latency_ms=report["total_simulated_latency_ms"],
             injected_timeouts=report["injected_timeouts"],
             within_budget=None if budget is None else cost <= budget,
-            attempts=report["attempts"],
+            attempts=attempts,
+            variant_attempt_counts=dict(versions),
         )
     return result
 
@@ -170,16 +187,31 @@ def main() -> None:
         default="auto",
         choices=("auto", "anthropic", "chat_completions", "responses", "gemini_interactions"),
     )
-    parser.add_argument("--tasks", default=",".join(PILOT_TASKS), help="Comma-separated task IDs")
+    task_selection = parser.add_mutually_exclusive_group()
+    task_selection.add_argument("--tasks", help="Comma-separated task IDs")
+    task_selection.add_argument(
+        "--pilot50", action="store_true", help="Use the committed 50-task sample"
+    )
+    parser.add_argument("--limit", type=int, help="Run only the first N tasks in --pilot50")
     parser.add_argument(
         "--output-dir", type=Path, required=True, help="New directory for the reports"
     )
-    parser.add_argument("--arm-timeout", type=int, default=300, help="Seconds allowed per arm")
-    parser.add_argument("--max-steps", type=int, default=16)
+    parser.add_argument(
+        "--arm-timeout", type=int, help="Seconds allowed per arm (pilot50: 3600, otherwise: 300)"
+    )
+    parser.add_argument(
+        "--max-steps", type=int, help="Model turns per task (pilot50: 64, otherwise: 16)"
+    )
     parser.add_argument("--max-concurrent", type=int, default=2)
     parser.add_argument("--variant-seed", type=int, default=0)
     parser.add_argument("--budget", type=int, help="Tool cost ceiling stated in both prompts")
     args = parser.parse_args()
+    if args.limit is not None and not args.pilot50:
+        parser.error("--limit requires --pilot50")
+    if args.arm_timeout is None:
+        args.arm_timeout = 3600 if args.pilot50 else 300
+    if args.max_steps is None:
+        args.max_steps = 64 if args.pilot50 else 16
     if (
         args.arm_timeout < 1
         or args.max_steps < 1
@@ -189,7 +221,15 @@ def main() -> None:
         parser.error("timeout, step limit, concurrency and optional budget must be positive")
     if args.output_dir.exists():
         parser.error("--output-dir must be a new directory")
-    tasks = tuple(dict.fromkeys(name.strip() for name in args.tasks.split(",") if name.strip()))
+    if args.pilot50:
+        try:
+            tasks = load_pilot50(args.limit)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            parser.error(f"cannot load pilot50 tasks: {exc}")
+    elif args.tasks is not None:
+        tasks = tuple(dict.fromkeys(name.strip() for name in args.tasks.split(",") if name.strip()))
+    else:
+        tasks = PILOT_TASKS
     if not tasks:
         parser.error("choose at least one task")
     domains = list(dict.fromkeys(name.split(".", 1)[0] for name in tasks))

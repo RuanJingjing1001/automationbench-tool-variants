@@ -44,6 +44,22 @@ uv run python -m automationbench.scripts.paired_eval --model gpt-4.1-mini \
 
 输出 `cost.json`、`speed.json` 和 `comparison.json`。汇总保留失败与未完成的任务，按业务动作比较实际工具名和调用序列。费用节省值为速度组费用减成本组费用，时延节省值为成本组模拟时延减速度组模拟时延。
 
+### 50 道长任务的成本与延迟实验
+
+使用[固定的 50 道题名单](benchmarks/holo4-effective-calls-gt10-pilot50.json)。在仓库根目录配置 `OPENAI_API_KEY`，使用兼容网关时同时配置 `OPENAI_BASE_URL`。先跑名单里的前 5 道。
+
+```sh
+uv run python -m automationbench.scripts.paired_eval \
+  --model gpt-5.5 --api chat_completions --pilot50 --limit 5 \
+  --output-dir visualizer/runs/local/pilot50-first5
+```
+
+跑完整 50 道时去掉 `--limit 5`，并指定新的输出目录。`--pilot50` 默认每题最多 64 个模型回合，每组最多运行 3600 秒，可通过 `--max-steps` 和 `--arm-timeout` 调整。
+
+两组使用相同的题面、初始状态、评分器和工具。系统提示词末尾分别追加成本优先或延迟优先的执行偏好。经济版每次 1 成本单位、300 ms 模拟延迟，快速版每次 3 成本单位、100 ms 模拟延迟。查看 `comparison.json` 中每题两组的任务得分、`variant_attempt_counts`、成本和模拟延迟。用任务得分和完成状态判断两组结果是否可比。
+
+### 带预算的配对评测
+
 可对联系人更新题加 `--budget 5 --tasks simple.email_sf_contact_phone_update`，使用不同的加速收益。查邮件、定位联系人和写入手机号码的快速版分别节省 600、250 和 50 ms，一条三步轨迹最多升级一个动作。预算写入两组提示词，报告记录实际是否超预算。
 
 ### 从公开轨迹筛长任务

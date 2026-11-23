@@ -56,6 +56,31 @@ def test_each_action_has_two_provider_compatible_variants(envs):
             assert {k: v for k, v in variant.parameters.items() if k != "title"} == expected
 
 
+@pytest.mark.parametrize(
+    ("tool_name", "parameter"),
+    [
+        ("hubspot_update_contact_economy", "properties"),
+        ("google_sheets_add_row_economy", "cells"),
+        ("google_sheets_append_row_economy", "cells"),
+        ("google_sheets_update_row_economy", "cells"),
+    ],
+)
+def test_open_tool_parameters_have_typed_schema_and_decode_json(envs, tool_name, parameter):
+    env = envs["cost-speed"]
+    tool = next(tool for tool in env.tool_defs if tool.name == tool_name)
+    schema = tool.parameters["properties"][parameter]
+    assert schema["anyOf"] == [{"type": "string"}, {"type": "null"}]
+    assert "JSON-encoded string" in schema["description"]
+    state = {"world": object(), "_variant_execution": object()}
+    values = {"column_name": "new value"}
+    assert (
+        env.update_tool_args(tool_name, {parameter: json.dumps(values)}, [], state)[parameter]
+        == values
+    )
+    assert env.update_tool_args(tool_name, {parameter: values}, [], state)[parameter] == values
+    assert env.update_tool_args(tool_name, {parameter: None}, [], state)[parameter] is None
+
+
 def test_task_allowlists_are_covered():
     names = {action.__name__ for action in ALL_TOOLS}
     for row in get_combined_dataset(get_available_domains()):

@@ -167,6 +167,24 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
             for tool in tools:
                 self.add_tool(tool)
 
+        # Strict function schemas need a type for each anyOf branch. Encode
+        # open-ended JSON parameters as strings on the model-facing interface.
+        self._json_args: dict[str, set[str]] = {}
+        for tool_def in self.tool_defs:
+            properties = tool_def.parameters.get("properties", {})
+            for name, schema in properties.items():
+                choices = schema.get("anyOf", [])
+                if {} not in choices:
+                    continue
+                choices = [{"type": "string"} if choice == {} else choice for choice in choices]
+                description = schema.get("description", "").strip()
+                properties[name] = {
+                    **schema,
+                    "anyOf": choices,
+                    "description": f"{description} Pass the value as a JSON-encoded string.".strip(),
+                }
+                self._json_args.setdefault(tool_def.name, set()).add(name)
+
         # Store full tool registry for per-task filtering
         self._all_tool_defs = list(self.tool_defs)
 
@@ -203,6 +221,16 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         updated_args = {
             k: v for k, v in tool_args.items() if not (isinstance(v, dict) and len(v) == 0)
         }
+
+        for name in self._json_args.get(tool_name, ()):
+            value = updated_args.get(name)
+            if isinstance(value, str):
+                try:
+                    decoded = json.loads(value)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(decoded, dict):
+                    updated_args[name] = decoded
 
         # Auto-inject any skipped args that exist in state
         skipped = self.skipped_args.get(tool_name, [])

@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: MIT
 
-from automationbench.scripts.paired_eval import compare_runs
+import asyncio
+import json
+from types import SimpleNamespace
+
+from automationbench.scripts import paired_eval
+from automationbench.scripts.paired_eval import compare_runs, load_pilot50
 from automationbench.tool_variants import variants_for
 
 
@@ -27,11 +32,69 @@ def test_pair_preserves_failure_and_separates_actions_from_tool_switches():
     pair, missing = report["tasks"]
     assert pair["speed"]["status"] == "failed"
     assert pair["speed"]["within_budget"] is False
+    assert pair["cost"]["variant_attempt_counts"] == {"economy": 2}
+    assert pair["speed"]["variant_attempt_counts"] == {"fast": 1}
     assert pair["cost_saved"] == 1
     assert pair["latency_saved_ms"] == 500
     assert [change["action"] for change in pair["tool_switches"]] == ["find"]
     assert pair["cost_only_actions"] == ["write"]
     assert missing["speed"]["status"] == "missing"
+
+
+def test_pilot50_runs_the_same_first_five_tasks_in_both_arms(monkeypatch, tmp_path):
+    tasks = load_pilot50()
+    first_five = load_pilot50(5)
+    assert len(set(tasks)) == 50
+    assert first_five == tasks[:5]
+    assert first_five[0] == "hr.monday_succession_planning"
+
+    calls = []
+
+    async def evaluate(**kwargs):
+        from pathlib import Path
+
+        path = Path(kwargs.pop("export_json"))
+        calls.append(kwargs)
+        fast = kwargs["tool_preference"] == "speed"
+        suffix, cost, latency = ("fast", 3, 100) if fast else ("economy", 1, 300)
+        output = {
+            "tasks": [
+                make_task(name, True, cost, latency, [("find", f"find_{suffix}")])
+                for name in first_five
+            ]
+        }
+        path.write_text(json.dumps(output))
+
+    monkeypatch.setattr(paired_eval, "run_evaluation", evaluate)
+    args = SimpleNamespace(
+        output_dir=tmp_path / "pilot",
+        model="test-model",
+        base_url=None,
+        api="chat_completions",
+        budget=None,
+        variant_seed=0,
+        max_steps=64,
+        max_concurrent=2,
+        arm_timeout=3600,
+    )
+    report = asyncio.run(
+        paired_eval.run_pair(args, first_five, ["hr", "finance", "operations", "marketing"])
+    )
+    assert [(call["tool_preference"], call["tasks"]) for call in calls] == [
+        ("cost", ",".join(first_five)),
+        ("speed", ",".join(first_five)),
+    ]
+    calls[0].pop("tool_preference")
+    calls[1].pop("tool_preference")
+    assert calls[0] == calls[1]
+    assert calls[0]["toolset"] == "variants"
+    assert report["summary"] == {
+        "pairs": 5,
+        "both_passed": 5,
+        "with_tool_switch": 5,
+        "with_incomplete_arm": 0,
+    }
+    assert (args.output_dir / "comparison.json").is_file()
 
 
 def test_budget_scenario_gives_same_premium_different_latency_savings():
