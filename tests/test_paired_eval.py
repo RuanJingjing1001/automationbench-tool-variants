@@ -38,7 +38,15 @@ def test_pair_preserves_failure_and_separates_actions_from_tool_switches():
     assert pair["latency_saved_ms"] == 500
     assert [change["action"] for change in pair["tool_switches"]] == ["find"]
     assert pair["cost_only_actions"] == ["write"]
+    assert pair["score_deltas"] == {"speed_minus_cost": -1.0}
     assert missing["speed"]["status"] == "missing"
+    assert missing["score_deltas"] == {}
+    assert report["summary"]["by_arm"]["speed"] == {
+        "scored_tasks": 1,
+        "avg_score": 0.0,
+        "strict_pass_count": 0,
+        "strict_pass_rate": 0.0,
+    }
 
 
 def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, tmp_path):
@@ -68,7 +76,11 @@ def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, t
                 task.pop("tool_variants")
         elif kwargs["tool_preference"] == "cost":
             output["tasks"][0].update(
-                stop_condition="token_budget_exceeded", input_tokens=400_000, output_tokens=1_000
+                stop_condition="token_budget_exceeded",
+                passed=False,
+                score=0.5,
+                input_tokens=400_000,
+                output_tokens=1_000,
             )
         path.write_text(json.dumps(output))
 
@@ -107,6 +119,26 @@ def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, t
     assert (args.output_dir / "native.json").is_file()
     assert report["summary"] == {
         "pairs": 5,
+        "by_arm": {
+            "native": {
+                "scored_tasks": 5,
+                "avg_score": 1.0,
+                "strict_pass_count": 5,
+                "strict_pass_rate": 1.0,
+            },
+            "cost": {
+                "scored_tasks": 5,
+                "avg_score": 0.9,
+                "strict_pass_count": 4,
+                "strict_pass_rate": 0.8,
+            },
+            "speed": {
+                "scored_tasks": 5,
+                "avg_score": 1.0,
+                "strict_pass_count": 5,
+                "strict_pass_rate": 1.0,
+            },
+        },
         "both_passed": 4,
         "with_tool_switch": 4,
         "with_incomplete_arm": 0,
@@ -115,6 +147,11 @@ def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, t
     capped = report["tasks"][0]
     assert capped["cost"]["status"] == "token_budget_exceeded"
     assert capped["cost"]["model_tokens"] == 401_000
+    assert capped["score_deltas"] == {
+        "cost_minus_native": -0.5,
+        "speed_minus_native": 0.0,
+        "speed_minus_cost": 0.5,
+    }
     assert "latency_saved_ms" not in capped
     assert (args.output_dir / "comparison.json").is_file()
 

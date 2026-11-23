@@ -5,6 +5,7 @@
 import argparse
 import asyncio
 from collections import Counter
+from itertools import combinations
 import json
 import os
 from pathlib import Path
@@ -53,7 +54,7 @@ def arm_summary(
         status = "incomplete"
     else:
         status = "passed" if task["passed"] else "failed"
-    result = {"status": status, "score": task["score"]}
+    result = {"status": status, "score": task.get("score")}
     if "input_tokens" in task and "output_tokens" in task:
         result["model_tokens"] = task["input_tokens"] + task["output_tokens"]
     if report is not None:
@@ -86,6 +87,12 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
             pair[arm] = arm_summary(
                 by_arm[arm].get(name), name in aborted_by_arm[arm], budget, native=arm == "native"
             )
+        scores = {arm: pair[arm].get("score") for arm in arms}
+        pair["score_deltas"] = {
+            f"{right}_minus_{left}": scores[right] - scores[left]
+            for left, right in combinations(arms, 2)
+            if scores[left] is not None and scores[right] is not None
+        }
         cost, speed = pair["cost"], pair["speed"]
         if (
             "attempts" in cost
@@ -112,10 +119,23 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
                 speed_only_actions=sorted(speed_tools.keys() - cost_tools.keys()),
             )
         pairs.append(pair)
+
+    by_arm_metrics = {}
+    for arm in arms:
+        scores = [pair[arm]["score"] for pair in pairs if pair[arm].get("score") is not None]
+        scored = len(scores)
+        passed = sum(score == 1.0 for score in scores)
+        by_arm_metrics[arm] = {
+            "scored_tasks": scored,
+            "avg_score": sum(scores) / scored if scored else None,
+            "strict_pass_count": passed,
+            "strict_pass_rate": passed / scored if scored else None,
+        }
     return {
         "tasks": pairs,
         "summary": {
             "pairs": len(pairs),
+            "by_arm": by_arm_metrics,
             "both_passed": sum(
                 pair["cost"]["status"] == pair["speed"]["status"] == "passed" for pair in pairs
             ),
@@ -183,35 +203,57 @@ async def run_pair(
 
 
 def print_report(report: dict) -> None:
-    table = Table(
-        "Task",
-        "Native arm",
-        "Cost arm",
-        "Speed arm",
-        "Cost saved",
-        "Time saved (ms)",
-        "Actions switched",
+    console = Console()
+    summary = report["summary"]
+    metrics_table = Table(
+        "Arm", "Scored / scheduled", "Avg. task score", "Strict pass rate", "Token cap hits"
     )
+    for arm, metrics in summary["by_arm"].items():
+        avg_score = metrics["avg_score"]
+        pass_rate = metrics["strict_pass_rate"]
+        metrics_table.add_row(
+            arm.title(),
+            f"{metrics['scored_tasks']}/{summary['pairs']}",
+            f"{avg_score:.1%}" if avg_score is not None else "–",
+            f"{pass_rate:.1%} ({metrics['strict_pass_count']}/{metrics['scored_tasks']})"
+            if pass_rate is not None
+            else "–",
+            str(summary["token_budget_exceeded_by_arm"][arm]),
+        )
+    console.print(metrics_table)
+
+    table = Table(
+        caption="Score Δ = speed − cost in percentage points.",
+    )
+    table.add_column("Task", overflow="fold", ratio=2)
+    for arm in summary["by_arm"]:
+        table.add_column(arm.title(), ratio=1)
+    for heading in ("Score Δ", "Cost saved", "ms saved", "Switches"):
+        table.add_column(heading, justify="right")
     for pair in report["tasks"]:
         arms = []
-        for arm in ("native", *PREFERENCES):
+        for arm in summary["by_arm"]:
             result = pair[arm]
-            label = result["status"]
-            if "score" in result and result["score"] is not None:
-                label += f" · {result['score']:.1%}"
+            status = result["status"]
+            score = result.get("score")
+            label = f"{score:.1%}" if score is not None else "–"
+            if status not in ("passed", "failed"):
+                label += "\n" + ("token cap" if status == "token_budget_exceeded" else status)
             if "cost_units" in result:
-                label += f" · {result['cost_units']}u / {result['simulated_latency_ms']}ms"
+                label += f"\n{result['cost_units']}u/{result['simulated_latency_ms']}ms"
             if result.get("within_budget") is False:
-                label += " · over budget"
+                label += "\nover budget"
             arms.append(label)
+        delta = pair["score_deltas"].get("speed_minus_cost")
         table.add_row(
             pair["task"],
             *arms,
+            f"{delta * 100:+.1f}" if delta is not None else "–",
             str(pair.get("cost_saved", "–")),
             str(pair.get("latency_saved_ms", "–")),
             str(len(pair.get("tool_switches", []))),
         )
-    Console().print(table)
+    console.print(table)
 
 
 def main() -> None:

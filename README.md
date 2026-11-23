@@ -44,6 +44,8 @@ uv run python -m automationbench.scripts.paired_eval --model gpt-4.1-mini \
 
 输出 `native.json`、`cost.json`、`speed.json` 和 `comparison.json`。汇总保留失败与未完成的任务，按业务动作比较实际工具名和调用序列。费用节省值为速度组费用减成本组费用，时延节省值为成本组模拟时延减速度组模拟时延。
 
+终端和 `comparison.json` 汇总三组的平均得分、严格通过率、计分题数和触顶题数。平均得分和严格通过率以该组有分数的题为分母，包含触顶后保留的分数。逐题的 `score_deltas` 采用 0–1 分制，记录成本组减原生组、速度组减原生组、速度组减成本组。终端用百分点显示速度组减成本组，和成本、时延差值并列。
+
 ### 50 道长任务的成本与延迟实验
 
 使用[固定的 50 道题名单](benchmarks/holo4-effective-calls-gt10-pilot50.json)。在仓库根目录配置 `OPENAI_API_KEY`，使用兼容网关时同时配置 `OPENAI_BASE_URL`。先跑名单里的前 5 道。
