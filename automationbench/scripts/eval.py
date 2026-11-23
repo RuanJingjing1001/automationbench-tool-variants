@@ -36,7 +36,12 @@ from automationbench.export import export_partial_results, export_results
 from automationbench.pricing import PricingDatabase
 from automationbench.rubric import create_rubric
 from automationbench.runner import AutomationBenchEnv
-from automationbench.tool_variants import PREFERENCES, SCENARIOS
+from automationbench.tool_variants import (
+    MULTI_OBJECTIVE,
+    MULTI_OBJECTIVE_PROFILE_SCOPE,
+    PREFERENCES,
+    SCENARIOS,
+)
 from automationbench.usage import calculate_run_usage, print_usage_report
 
 
@@ -517,6 +522,8 @@ async def run_evaluation(
         extra_meta = {"batch": True} if batch else {}
         if toolset == "variants":
             extra_meta.update(variant_scenario=variant_scenario, variant_seed=variant_seed)
+            if variant_scenario == MULTI_OBJECTIVE:
+                extra_meta["variant_profile_scope"] = MULTI_OBJECTIVE_PROFILE_SCOPE
         if tool_preference != "neutral":
             extra_meta["tool_preference"] = tool_preference
         if tool_budget is not None:

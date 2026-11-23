@@ -11,14 +11,19 @@ from datasets import Dataset
 
 from automationbench.domains import get_available_domains, get_combined_dataset
 from automationbench.domains.finance.tasks import get_fin_qb_recurring_journal_task
+from automationbench.domains.marketing.tasks import get_event_followup_personalization_task
 from automationbench.domains.simple.tasks import get_simple_email_sf_contact_phone_update
 from automationbench.domains.support.tasks import get_support_zendesk_sf_case_sync_task
 from automationbench.rubric import create_rubric, partial_credit
 from automationbench.runner import AutomationBenchEnv
 from automationbench.schema.salesforce import base as salesforce_base
-from automationbench.tool_variants import MULTI_OBJECTIVE, VariantExecution, _read_call_id
+from automationbench.tool_variants import MULTI_OBJECTIVE, VariantExecution, _tool_call_id
 from automationbench.tools import ALL_TOOLS
-from automationbench.tools.zapier.google_sheets.row import google_sheets_get_many_rows
+from automationbench.tools.zapier.gmail.message import gmail_send_email
+from automationbench.tools.zapier.google_sheets.row import (
+    google_sheets_append_row,
+    google_sheets_get_many_rows,
+)
 
 
 @pytest.fixture(scope="module")
@@ -49,12 +54,16 @@ async def call(env, state, name, **arguments):
     return json.loads(result.content)
 
 
-def test_each_action_has_two_provider_compatible_variants(envs):
+@pytest.mark.parametrize(
+    ("scenario", "suffixes"),
+    [("cost-speed", ("economy", "fast")), (MULTI_OBJECTIVE, ("economy", "fast", "reliable"))],
+)
+def test_each_action_has_provider_compatible_variants(envs, scenario, suffixes):
     base = {tool.name: tool for tool in envs["limited_zapier"].tool_defs}
-    variants = {tool.name: tool for tool in envs["cost-speed"].tool_defs}
-    assert len(variants) == len(base) * 2 == len(ALL_TOOLS) * 2
+    variants = {tool.name: tool for tool in envs[scenario].tool_defs}
+    assert len(variants) == len(base) * len(suffixes) == len(ALL_TOOLS) * len(suffixes)
     for name, tool in base.items():
-        for suffix in ("economy", "fast"):
+        for suffix in suffixes:
             variant = variants[f"{name}_{suffix}"]
             assert len(variant.name) <= 64
             expected = {k: v for k, v in tool.parameters.items() if k != "title"}
@@ -173,7 +182,7 @@ async def test_multi_objective_charges_timeout_and_matches_faults_across_version
     arguments = {"spreadsheet": "ss_recurring_je", "worksheet": "ws_schedule_je"}
     bound = signature(google_sheets_get_many_rows).bind(None, **arguments)
     bound.apply_defaults()
-    call_id = _read_call_id(action, bound.arguments)
+    call_id = _tool_call_id(action, bound.arguments)
 
     def matched_fault(seed):
         execution = VariantExecution.start([], MULTI_OBJECTIVE, seed, 4083)
@@ -188,7 +197,7 @@ async def test_multi_objective_charges_timeout_and_matches_faults_across_version
     stable = await env.setup_state(get_fin_qb_recurring_journal_task())
     names = {tool.name for tool in cost["tool_defs"]}
     assert {f"{action}_{name}" for name in ("economy", "fast", "reliable")} <= names
-    assert "google_sheets_update_row_reliable" not in names
+    assert "google_sheets_update_row_reliable" in names
 
     await call(env, speed, "gmail_find_email_economy", query="procedures")
     for state, version, fee in ((cost, "economy", 1), (speed, "fast", 2)):
@@ -218,6 +227,54 @@ async def test_multi_objective_charges_timeout_and_matches_faults_across_version
     assert report["total_simulated_latency_ms"] == 1300
     assert report["attempts"][-1]["fault_attempt"] == 2
     assert report["attempts"][-1]["recovered_after_timeout"] is True
+
+
+@pytest.mark.parametrize(
+    ("action", "arguments"),
+    [
+        (gmail_send_email, {"to": "test@example.com", "subject": "Follow-up", "body": "Hello"}),
+        (
+            google_sheets_append_row,
+            {
+                "spreadsheet": "ss_event",
+                "worksheet": "ws_sent",
+                "cells": {"email": "test@example.com"},
+            },
+        ),
+    ],
+)
+async def test_multi_objective_timeout_precedes_write_and_retry_executes_once(
+    envs, monkeypatch, action, arguments
+):
+    env = envs[MULTI_OBJECTIVE]
+    task = get_event_followup_personalization_task()
+    bound = signature(action).bind(None, **arguments)
+    bound.apply_defaults()
+    call_id = _tool_call_id(action.__name__, bound.arguments)
+
+    def matched_fault(seed):
+        execution = VariantExecution.start([], MULTI_OBJECTIVE, seed, task["example_id"])
+        return execution.fault_draw(call_id)[1] < 0.10 and execution.fault_draw(call_id)[1] >= 0.01
+
+    monkeypatch.setattr(
+        env, "variant_seed", next(seed for seed in range(1000) if matched_fault(seed))
+    )
+    state = await env.setup_state(task)
+    world = state["world"]
+    original = world.model_dump()
+
+    assert (await call(env, state, f"{action.__name__}_economy", **arguments))["retryable"]
+    assert world.model_dump() == original
+    assert (await call(env, state, f"{action.__name__}_reliable", **arguments))["success"]
+
+    report = state["tool_variants"]
+    assert [a["fault_call_id"] for a in report["attempts"]] == [call_id, call_id]
+    assert report["attempts"][1]["recovered_after_timeout"] is True
+    assert (report["total_cost_units"], report["total_simulated_latency_ms"]) == (3, 1300)
+    if action is gmail_send_email:
+        assert len(world.gmail.messages) == len(original["gmail"]["messages"]) + 1
+    else:
+        assert len(world.google_sheets.rows) == len(original["google_sheets"]["rows"]) + 1
 
 
 async def test_quality_cap_uses_original_response_shape_and_paging(envs):

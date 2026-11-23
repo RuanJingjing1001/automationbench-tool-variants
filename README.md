@@ -17,7 +17,7 @@ Learn more at [zapier.com/benchmarks](https://zapier.com/benchmarks) or run it o
 | `cost-speed`（默认） | `economy` / `fast` | 每次 1 单位 / 300 ms 与 3 单位 / 100 ms。 |
 | `stability` | `economy` / `reliable` | 两版均 300 ms，费用分别为 1 和 3 单位，执行前超时概率分别为 10% 和 1%。 |
 | `quality` | `economy` / `standard` | 两版均 300 ms，费用分别为 1 和 3 单位。仅 `google_sheets_find_many_rows` 的省钱版每次最多返回 5 行，标准版使用原有参数和返回上限。使用数据超过 5 行且实际需要这些行的题检验质量差异。 |
-| `multi-objective` | 关键读取提供 `economy` / `fast` / `reliable` | 同时评估成本、模拟延迟、故障恢复和任务得分。 |
+| `multi-objective` | 所有业务动作提供 `economy` / `fast` / `reliable` | 同时评估成本、模拟延迟、故障恢复和任务得分。 |
 
 使用已配置凭据的模型运行同一任务两次。以下以 OpenAI 接口为例，需设置 `OPENAI_API_KEY`。
 
@@ -36,7 +36,7 @@ done
 
 ### 成本、延迟与稳定性
 
-`multi-objective` 默认给 Gmail 搜索和 Google Sheets 的两种多行读取动作提供下列版本。其他动作使用 `cost-speed` 的版本与计费。题面、初始状态和评分器沿用原任务。
+`multi-objective` 为每道题开放的所有业务动作提供下列版本，涵盖搜索、读取、发邮件、写表等操作。题面、初始状态和评分器沿用原任务。各版本共享业务参数和实现。
 
 | 版本 | 每次尝试成本 | 正常返回模拟延迟 | 单次超时概率 |
 | --- | ---: | ---: | ---: |
@@ -44,7 +44,7 @@ done
 | `fast` | 2 | 100 ms | 10% |
 | `reliable` | 2 | 300 ms | 1% |
 
-超时在底层工具执行前返回可重试错误，计入该版本的单次成本和 1,000 ms 模拟延迟。对应的故障抽样由种子、任务实例、原子动作、归一化参数和该查询的尝试序号确定。切换版本和插入其他调用都不改变对应尝试的随机数。此后同一查询成功返回时记作一次恢复，连续多次超时后成功也计一次恢复。
+超时在底层工具执行前返回可重试错误，计入该版本的单次成本和 1,000 ms 模拟延迟。该次超时不会发送邮件、插入行或产生其他写入。对应的故障抽样由种子、任务实例、原子动作、归一化参数和该调用的尝试序号确定。切换版本和插入其他调用都不改变对应尝试的随机数。此后同一调用明确返回成功时记作一次恢复，连续多次超时后成功也计一次恢复。
 
 ```sh
 uv run python -m automationbench.scripts.paired_eval \
@@ -53,7 +53,7 @@ uv run python -m automationbench.scripts.paired_eval \
   --output-dir visualizer/runs/local/multi-objective-seed0
 ```
 
-输出 `cost.json`、`speed.json`、`stability.json` 和 `comparison.json`。三组使用相同的工具菜单和故障种子，只改变执行偏好。汇总展示工具成本、模拟延迟、超时与恢复次数、任务得分和 token 触顶。逐题展示各组实际版本与调用记录。更换种子时使用新的输出目录。
+输出 `cost.json`、`speed.json`、`stability.json` 和 `comparison.json`。三组使用相同的工具菜单和故障种子，只改变执行偏好。汇总展示工具成本、模拟延迟、超时与恢复次数、任务得分和 token 触顶。逐题展示各组实际版本与调用记录。新版结果标记为 `variant_profile_scope: "all-actions"`，可与此前仅三个读取动作具有可靠版的实验区分。
 
 ### 配对评测
 

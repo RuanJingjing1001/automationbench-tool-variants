@@ -207,6 +207,7 @@ def test_multi_objective_paired_run_reports_three_preferences(monkeypatch, tmp_p
     assert [call["tool_preference"] for call in calls] == ["cost", "speed", "stability"]
     assert all(call["toolset"] == "variants" and call["variant_seed"] == 7 for call in calls)
     assert report["variant_seed"] == 7
+    assert report["variant_profile_scope"] == "all-actions"
     assert report["tasks"][0]["stability"]["recovered_timeouts"] == 1
     assert report["summary"]["by_arm"]["stability"]["total_simulated_latency_ms"] == 1300
     assert report["summary"]["by_arm"]["stability"]["strict_pass_rate"] == 1.0

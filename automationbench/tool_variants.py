@@ -45,13 +45,7 @@ class Profile:
 
 ECONOMY = Profile("economy", 1, 300)
 MULTI_OBJECTIVE = "multi-objective"
-MULTI_OBJECTIVE_READS = frozenset(
-    {
-        "gmail_find_email",
-        "google_sheets_get_many_rows",
-        "google_sheets_find_many_rows",
-    }
-)
+MULTI_OBJECTIVE_PROFILE_SCOPE = "all-actions"
 SCENARIOS = {
     "cost-speed": (ECONOMY, Profile("fast", 3, 100)),
     "budget-speed": (ECONOMY, Profile("fast", 3, 100)),
@@ -120,8 +114,6 @@ class VariantExecution:
 
 
 def profiles_for_action(action: str, scenario: str) -> tuple[Profile, ...]:
-    if scenario == MULTI_OBJECTIVE and action not in MULTI_OBJECTIVE_READS:
-        return SCENARIOS["cost-speed"]
     profiles = SCENARIOS[scenario]
     if scenario == "quality" and action in QUALITY_ROW_CAPS:
         economy, standard = profiles
@@ -139,7 +131,7 @@ def variants_for(tool: Callable, scenario: str) -> list[Callable]:
     return [_wrap(tool, profile) for profile in profiles_for_action(tool.__name__, scenario)]
 
 
-def _read_call_id(action: str, arguments: dict) -> str:
+def _tool_call_id(action: str, arguments: dict) -> str:
     # Hash resolved arguments, omitting mutable world state and collapsing input aliases.
     inputs = {name: value for name, value in arguments.items() if name != "world"}
     if action in ("google_sheets_get_many_rows", "google_sheets_find_many_rows"):
@@ -150,6 +142,15 @@ def _read_call_id(action: str, arguments: dict) -> str:
         inputs["worksheet"] = inputs["worksheet"] or worksheet_alias or worksheet_title or ""
     payload = json.dumps([action, inputs], sort_keys=True, separators=(",", ":"))
     return sha256(payload.encode()).hexdigest()
+
+
+def _reported_success(result: str) -> bool:
+    # Recovery metrics must not interfere with the original tool result.
+    try:
+        payload = json.loads(result)
+    except (TypeError, ValueError):
+        return False
+    return isinstance(payload, dict) and payload.get("success") is True
 
 
 def _wrap(tool: Callable, profile: Profile) -> Callable:
@@ -195,7 +196,7 @@ def _wrap(tool: Callable, profile: Profile) -> Callable:
                 report["total_simulated_latency_ms"] += latency
                 raise
             bound.apply_defaults()
-            call_id = _read_call_id(action, bound.arguments)
+            call_id = _tool_call_id(action, bound.arguments)
             fault_attempt, draw = execution.fault_draw(call_id)
             timed_out = draw < profile.timeout_probability
             if timed_out:
@@ -224,7 +225,7 @@ def _wrap(tool: Callable, profile: Profile) -> Callable:
         else:
             result = tool(*args, **kwargs)
         attempt["status"] = "returned"
-        if call_id in execution.pending_timeouts and json.loads(result).get("success") is True:
+        if call_id in execution.pending_timeouts and _reported_success(result):
             execution.pending_timeouts.remove(call_id)
             attempt["recovered_after_timeout"] = True
         return result

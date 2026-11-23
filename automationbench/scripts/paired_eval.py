@@ -16,7 +16,7 @@ from rich.table import Table
 
 from automationbench.domains import get_combined_dataset
 from automationbench.scripts.eval import _task_name, run_evaluation
-from automationbench.tool_variants import MULTI_OBJECTIVE
+from automationbench.tool_variants import MULTI_OBJECTIVE, MULTI_OBJECTIVE_PROFILE_SCOPE
 
 PILOT_TASKS = (
     "simple.email_sf_contact_phone_update",
@@ -235,6 +235,7 @@ async def run_pair(
     report.update(model=args.model, scenario=scenario, budget=args.budget, run_errors=errors)
     if scenario == MULTI_OBJECTIVE:
         report["variant_seed"] = args.variant_seed
+        report["variant_profile_scope"] = MULTI_OBJECTIVE_PROFILE_SCOPE
     if max_task_tokens is not None:
         report["max_task_tokens"] = max_task_tokens
     (args.output_dir / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
