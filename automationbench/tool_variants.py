@@ -8,7 +8,9 @@ import functools
 import inspect
 import json
 import random
-from dataclasses import dataclass, replace
+from collections import Counter
+from dataclasses import dataclass, field, replace
+from hashlib import sha256
 from typing import Callable
 
 
@@ -19,6 +21,7 @@ class Profile:
     latency_ms: int
     timeout_probability: float = 0.0
     max_rows: int | None = None
+    timeout_ms: int | None = None
 
     @property
     def description(self) -> str:
@@ -27,6 +30,13 @@ class Profile:
             if self.max_rows is None
             else f"Returns at most {self.max_rows} rows per call."
         )
+        if self.timeout_ms is not None:
+            return (
+                f"Per attempt: {self.cost_units} cost units. Simulated latency on normal "
+                f"return: {self.latency_ms} ms. Pre-execution timeout probability: "
+                f"{self.timeout_probability:.0%}. A timeout takes {self.timeout_ms} ms, "
+                f"costs the same, and is retryable. {coverage}"
+            )
         return (
             f"Per attempt: {self.cost_units} cost units, {self.latency_ms} ms simulated "
             f"latency, {self.timeout_probability:.0%} injected timeout probability. {coverage}"
@@ -34,6 +44,14 @@ class Profile:
 
 
 ECONOMY = Profile("economy", 1, 300)
+MULTI_OBJECTIVE = "multi-objective"
+MULTI_OBJECTIVE_READS = frozenset(
+    {
+        "gmail_find_email",
+        "google_sheets_get_many_rows",
+        "google_sheets_find_many_rows",
+    }
+)
 SCENARIOS = {
     "cost-speed": (ECONOMY, Profile("fast", 3, 100)),
     "budget-speed": (ECONOMY, Profile("fast", 3, 100)),
@@ -42,6 +60,11 @@ SCENARIOS = {
         Profile("reliable", 3, 300, timeout_probability=0.01),
     ),
     "quality": (ECONOMY, Profile("standard", 3, 300)),
+    MULTI_OBJECTIVE: (
+        Profile("economy", 1, 300, timeout_probability=0.10, timeout_ms=1000),
+        Profile("fast", 2, 100, timeout_probability=0.10, timeout_ms=1000),
+        Profile("reliable", 2, 300, timeout_probability=0.01, timeout_ms=1000),
+    ),
 }
 # Action-specific latency gains for the budget pilot.
 BUDGET_LATENCIES = {
@@ -69,6 +92,9 @@ class VariantExecution:
     allowed_names: frozenset[str]
     random: random.Random
     report: dict
+    example_id: int | None = None
+    attempts_by_call: Counter[str] = field(default_factory=Counter)
+    pending_timeouts: set[str] = field(default_factory=set)
 
     @classmethod
     def start(cls, allowed_names, scenario: str, seed: int, example_id: int | None):
@@ -83,10 +109,19 @@ class VariantExecution:
                 "injected_timeouts": 0,
                 "attempts": [],
             },
+            example_id=example_id,
         )
+
+    def fault_draw(self, call_id: str) -> tuple[int, float]:
+        self.attempts_by_call[call_id] += 1
+        attempt = self.attempts_by_call[call_id]
+        key = f"{self.report['seed']}:{self.example_id}:{call_id}:{attempt}"
+        return attempt, random.Random(key).random()
 
 
 def profiles_for_action(action: str, scenario: str) -> tuple[Profile, ...]:
+    if scenario == MULTI_OBJECTIVE and action not in MULTI_OBJECTIVE_READS:
+        return SCENARIOS["cost-speed"]
     profiles = SCENARIOS[scenario]
     if scenario == "quality" and action in QUALITY_ROW_CAPS:
         economy, standard = profiles
@@ -102,6 +137,19 @@ def profiles_for_action(action: str, scenario: str) -> tuple[Profile, ...]:
 def variants_for(tool: Callable, scenario: str) -> list[Callable]:
     """Give a business action independent callable names and the original input schema."""
     return [_wrap(tool, profile) for profile in profiles_for_action(tool.__name__, scenario)]
+
+
+def _read_call_id(action: str, arguments: dict) -> str:
+    # Hash resolved arguments, omitting mutable world state and collapsing input aliases.
+    inputs = {name: value for name, value in arguments.items() if name != "world"}
+    if action in ("google_sheets_get_many_rows", "google_sheets_find_many_rows"):
+        sheet_alias = inputs.pop("spreadsheet_id")
+        worksheet_alias = inputs.pop("worksheet_id")
+        worksheet_title = inputs.pop("worksheet_title", None)
+        inputs["spreadsheet"] = inputs["spreadsheet"] or sheet_alias or ""
+        inputs["worksheet"] = inputs["worksheet"] or worksheet_alias or worksheet_title or ""
+    payload = json.dumps([action, inputs], sort_keys=True, separators=(",", ":"))
+    return sha256(payload.encode()).hexdigest()
 
 
 def _wrap(tool: Callable, profile: Profile) -> Callable:
@@ -135,9 +183,32 @@ def _wrap(tool: Callable, profile: Profile) -> Callable:
         }
         attempts.append(attempt)
         report["total_cost_units"] += profile.cost_units
-        report["total_simulated_latency_ms"] += profile.latency_ms
+        call_id = None
+        latency = profile.latency_ms
+        if profile.timeout_ms is None:
+            timed_out = execution.random.random() < profile.timeout_probability
+        else:
+            # Charge invalid arguments at normal latency and keep the usual tool error.
+            try:
+                bound = original_signature.bind(*args, **kwargs)
+            except TypeError:
+                report["total_simulated_latency_ms"] += latency
+                raise
+            bound.apply_defaults()
+            call_id = _read_call_id(action, bound.arguments)
+            fault_attempt, draw = execution.fault_draw(call_id)
+            timed_out = draw < profile.timeout_probability
+            if timed_out:
+                latency = profile.timeout_ms
+                execution.pending_timeouts.add(call_id)
+            attempt.update(
+                fault_call_id=call_id,
+                fault_attempt=fault_attempt,
+                simulated_latency_ms=latency,
+            )
 
-        if execution.random.random() < profile.timeout_probability:
+        report["total_simulated_latency_ms"] += latency
+        if timed_out:
             attempt["status"] = "injected_timeout"
             report["injected_timeouts"] += 1
             return json.dumps({"error": "Simulated tool timeout", "retryable": True})
@@ -153,6 +224,9 @@ def _wrap(tool: Callable, profile: Profile) -> Callable:
         else:
             result = tool(*args, **kwargs)
         attempt["status"] = "returned"
+        if call_id in execution.pending_timeouts and json.loads(result).get("success") is True:
+            execution.pending_timeouts.remove(call_id)
+            attempt["recovered_after_timeout"] = True
         return result
 
     variant.__name__ = name

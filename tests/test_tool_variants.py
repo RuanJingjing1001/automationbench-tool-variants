@@ -2,6 +2,7 @@
 
 import json
 from datetime import datetime
+from inspect import signature
 from random import Random
 
 import pytest
@@ -9,12 +10,15 @@ import verifiers as vf
 from datasets import Dataset
 
 from automationbench.domains import get_available_domains, get_combined_dataset
+from automationbench.domains.finance.tasks import get_fin_qb_recurring_journal_task
 from automationbench.domains.simple.tasks import get_simple_email_sf_contact_phone_update
 from automationbench.domains.support.tasks import get_support_zendesk_sf_case_sync_task
 from automationbench.rubric import create_rubric, partial_credit
 from automationbench.runner import AutomationBenchEnv
 from automationbench.schema.salesforce import base as salesforce_base
+from automationbench.tool_variants import MULTI_OBJECTIVE, VariantExecution, _read_call_id
 from automationbench.tools import ALL_TOOLS
+from automationbench.tools.zapier.google_sheets.row import google_sheets_get_many_rows
 
 
 @pytest.fixture(scope="module")
@@ -31,6 +35,7 @@ def envs():
             ("variants", "cost-speed"),
             ("variants", "stability"),
             ("variants", "quality"),
+            ("variants", MULTI_OBJECTIVE),
         )
     }
 
@@ -158,6 +163,61 @@ async def test_stability_timeout_is_reproducible_and_precedes_writes(envs):
     assert reports[0] == reports[1]
     assert reports[0]["injected_timeouts"] == 1
     assert reports[0]["total_cost_units"] == 1
+
+
+async def test_multi_objective_charges_timeout_and_matches_faults_across_versions(
+    envs, monkeypatch
+):
+    env = envs[MULTI_OBJECTIVE]
+    action = "google_sheets_get_many_rows"
+    arguments = {"spreadsheet": "ss_recurring_je", "worksheet": "ws_schedule_je"}
+    bound = signature(google_sheets_get_many_rows).bind(None, **arguments)
+    bound.apply_defaults()
+    call_id = _read_call_id(action, bound.arguments)
+
+    def matched_fault(seed):
+        execution = VariantExecution.start([], MULTI_OBJECTIVE, seed, 4083)
+        _, first = execution.fault_draw(call_id)
+        _, retry = execution.fault_draw(call_id)
+        return 0.01 <= first < 0.10 and retry >= 0.01
+
+    seed = next(seed for seed in range(1000) if matched_fault(seed))
+    monkeypatch.setattr(env, "variant_seed", seed)
+    cost = await env.setup_state(get_fin_qb_recurring_journal_task())
+    speed = await env.setup_state(get_fin_qb_recurring_journal_task())
+    stable = await env.setup_state(get_fin_qb_recurring_journal_task())
+    names = {tool.name for tool in cost["tool_defs"]}
+    assert {f"{action}_{name}" for name in ("economy", "fast", "reliable")} <= names
+    assert "google_sheets_update_row_reliable" not in names
+
+    await call(env, speed, "gmail_find_email_economy", query="procedures")
+    for state, version, fee in ((cost, "economy", 1), (speed, "fast", 2)):
+        result = await call(env, state, f"{action}_{version}", **arguments)
+        assert result["retryable"] is True
+        attempt = state["tool_variants"]["attempts"][-1]
+        assert attempt["status"] == "injected_timeout"
+        assert attempt["fault_call_id"] == call_id
+        assert attempt["fault_attempt"] == 1
+        assert attempt["cost_units"] == fee
+        assert attempt["simulated_latency_ms"] == 1000
+
+    success = await call(env, stable, f"{action}_reliable", **arguments)
+    # Passing equivalent spreadsheet/worksheet aliases matches the original read.
+    recovered = await call(
+        env,
+        cost,
+        f"{action}_reliable",
+        spreadsheet_id=arguments["spreadsheet"],
+        worksheet_id=arguments["worksheet"],
+    )
+    assert [row["cells"] for row in recovered["rows"]] == [row["cells"] for row in success["rows"]]
+    assert success["result_count"] > 0
+    report = cost["tool_variants"]
+    assert report["injected_timeouts"] == 1
+    assert report["total_cost_units"] == 3
+    assert report["total_simulated_latency_ms"] == 1300
+    assert report["attempts"][-1]["fault_attempt"] == 2
+    assert report["attempts"][-1]["recovered_after_timeout"] is True
 
 
 async def test_quality_cap_uses_original_response_shape_and_paging(envs):

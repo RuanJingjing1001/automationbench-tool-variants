@@ -16,6 +16,7 @@ from rich.table import Table
 
 from automationbench.domains import get_combined_dataset
 from automationbench.scripts.eval import _task_name, run_evaluation
+from automationbench.tool_variants import MULTI_OBJECTIVE
 
 PILOT_TASKS = (
     "simple.email_sf_contact_phone_update",
@@ -69,11 +70,17 @@ def arm_summary(
             attempts=attempts,
             variant_attempt_counts=dict(versions),
         )
+        if report.get("scenario") == MULTI_OBJECTIVE:
+            result["recovered_timeouts"] = sum(
+                attempt.get("recovered_after_timeout", False) for attempt in attempts
+            )
     return result
 
 
 def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict:
     arms = ("native", *PREFERENCES) if "native" in runs else PREFERENCES
+    if "stability" in runs:
+        arms = (*arms, "stability")
     by_arm = {
         arm: {task["name"]: task for task in runs.get(arm, {}).get("tasks", [])} for arm in arms
     }
@@ -93,6 +100,19 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
             for left, right in combinations(arms, 2)
             if scores[left] is not None and scores[right] is not None
         }
+        if "stability" in arms:
+            comparable = [
+                arm
+                for arm in arms
+                if "cost_units" in pair[arm] and pair[arm]["status"] in ("passed", "failed")
+            ]
+            pair["tool_metric_deltas"] = {
+                f"{right}_minus_{left}": {
+                    key: pair[right][key] - pair[left][key]
+                    for key in ("cost_units", "simulated_latency_ms", "injected_timeouts")
+                }
+                for left, right in combinations(comparable, 2)
+            }
         cost, speed = pair["cost"], pair["speed"]
         if (
             "attempts" in cost
@@ -131,6 +151,20 @@ def compare_runs(tasks: tuple[str, ...], runs: dict, budget: int | None) -> dict
             "strict_pass_count": passed,
             "strict_pass_rate": passed / scored if scored else None,
         }
+        if "stability" in arms:
+            tool_results = [pair[arm] for pair in pairs if "cost_units" in pair[arm]]
+            if tool_results:
+                by_arm_metrics[arm].update(
+                    tasks_with_tool_logs=len(tool_results),
+                    total_cost_units=sum(result["cost_units"] for result in tool_results),
+                    total_simulated_latency_ms=sum(
+                        result["simulated_latency_ms"] for result in tool_results
+                    ),
+                    injected_timeouts=sum(result["injected_timeouts"] for result in tool_results),
+                    recovered_timeouts=sum(
+                        result.get("recovered_timeouts", 0) for result in tool_results
+                    ),
+                )
     return {
         "tasks": pairs,
         "summary": {
@@ -159,12 +193,15 @@ async def run_pair(
     *,
     include_native: bool = False,
     max_task_tokens: int | None = None,
+    variant_scenario: str | None = None,
 ) -> dict:
     args.output_dir.mkdir(parents=True, exist_ok=False)
     runs = {}
     errors = {}
-    scenario = "budget-speed" if args.budget is not None else "cost-speed"
+    scenario = variant_scenario or ("budget-speed" if args.budget is not None else "cost-speed")
     arms = ("native", *PREFERENCES) if include_native else PREFERENCES
+    if scenario == MULTI_OBJECTIVE:
+        arms = (*arms, "stability")
     for arm in arms:
         native = arm == "native"
         raw_path = args.output_dir / f"{arm}.json"
@@ -196,6 +233,8 @@ async def run_pair(
 
     report = compare_runs(tasks, runs, args.budget)
     report.update(model=args.model, scenario=scenario, budget=args.budget, run_errors=errors)
+    if scenario == MULTI_OBJECTIVE:
+        report["variant_seed"] = args.variant_seed
     if max_task_tokens is not None:
         report["max_task_tokens"] = max_task_tokens
     (args.output_dir / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
@@ -208,6 +247,10 @@ def print_report(report: dict) -> None:
     metrics_table = Table(
         "Arm", "Scored / scheduled", "Avg. task score", "Strict pass rate", "Token cap hits"
     )
+    multi_objective = report.get("scenario") == MULTI_OBJECTIVE
+    if multi_objective:
+        for heading in ("Total cost", "Total ms", "Timeouts", "Recoveries"):
+            metrics_table.add_column(heading, justify="right")
     for arm, metrics in summary["by_arm"].items():
         avg_score = metrics["avg_score"]
         pass_rate = metrics["strict_pass_rate"]
@@ -219,6 +262,16 @@ def print_report(report: dict) -> None:
             if pass_rate is not None
             else "–",
             str(summary["token_budget_exceeded_by_arm"][arm]),
+            *(
+                str(metrics.get(key, "–"))
+                for key in (
+                    "total_cost_units",
+                    "total_simulated_latency_ms",
+                    "injected_timeouts",
+                    "recovered_timeouts",
+                )
+                if multi_objective
+            ),
         )
     console.print(metrics_table)
 
@@ -241,6 +294,8 @@ def print_report(report: dict) -> None:
                 label += "\n" + ("token cap" if status == "token_budget_exceeded" else status)
             if "cost_units" in result:
                 label += f"\n{result['cost_units']}u/{result['simulated_latency_ms']}ms"
+            if "recovered_timeouts" in result:
+                label += f"\n{result['injected_timeouts']} timeouts/{result['recovered_timeouts']} recovered"
             if result.get("within_budget") is False:
                 label += "\nover budget"
             arms.append(label)
@@ -290,6 +345,11 @@ def main() -> None:
     )
     parser.add_argument("--variant-seed", type=int, default=0)
     parser.add_argument(
+        "--variant-scenario",
+        choices=("cost-speed", "budget-speed", MULTI_OBJECTIVE),
+        help="Use multi-objective for cost, speed and stability preference arms",
+    )
+    parser.add_argument(
         "--budget", type=int, help="Tool cost ceiling stated in the variant prompts"
     )
     args = parser.parse_args()
@@ -328,7 +388,14 @@ def main() -> None:
     if unknown := set(tasks) - available:
         parser.error(f"unknown task IDs {', '.join(sorted(unknown))}")
     report = asyncio.run(
-        run_pair(args, tasks, domains, include_native=True, max_task_tokens=args.max_task_tokens)
+        run_pair(
+            args,
+            tasks,
+            domains,
+            include_native=args.variant_scenario != MULTI_OBJECTIVE,
+            max_task_tokens=args.max_task_tokens,
+            variant_scenario=args.variant_scenario,
+        )
     )
     print_report(report)
     print(f"Comparison saved to {args.output_dir / 'comparison.json'}")

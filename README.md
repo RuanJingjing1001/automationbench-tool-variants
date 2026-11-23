@@ -10,13 +10,14 @@ Learn more at [zapier.com/benchmarks](https://zapier.com/benchmarks) or run it o
 
 ## 第一阶段 · 同功能工具变体
 
-基于 Zapier AutomationBench `4a8e106`。选择 `--toolset variants` 时，每个任务原先可用的业务动作会展开成两个独立可调用的工具，比如 `salesforce_find_records_economy` 和 `salesforce_find_records_fast`。两版复用原参数和业务函数，原任务断言照常评分。`--toolset limited_zapier` 可运行单版本对照。
+基于 Zapier AutomationBench `4a8e106`。选择 `--toolset variants` 时，按配置为各业务动作生成独立可调用的版本，比如 `salesforce_find_records_economy` 和 `salesforce_find_records_fast`。各版复用原参数和业务函数，原任务断言照常评分。`--toolset limited_zapier` 可运行单版本对照。
 
-| `--variant-scenario` | 两个版本 | 实验差异 |
+| `--variant-scenario` | 版本 | 实验差异 |
 | --- | --- | --- |
 | `cost-speed`（默认） | `economy` / `fast` | 每次 1 单位 / 300 ms 与 3 单位 / 100 ms。 |
 | `stability` | `economy` / `reliable` | 两版均 300 ms，费用分别为 1 和 3 单位，执行前超时概率分别为 10% 和 1%。 |
 | `quality` | `economy` / `standard` | 两版均 300 ms，费用分别为 1 和 3 单位。仅 `google_sheets_find_many_rows` 的省钱版每次最多返回 5 行，标准版使用原有参数和返回上限。使用数据超过 5 行且实际需要这些行的题检验质量差异。 |
+| `multi-objective` | 关键读取提供 `economy` / `fast` / `reliable` | 同时评估成本、模拟延迟、故障恢复和任务得分。 |
 
 使用已配置凭据的模型运行同一任务两次。以下以 OpenAI 接口为例，需设置 `OPENAI_API_KEY`。
 
@@ -32,6 +33,27 @@ done
 在导出的 `tasks[].tool_variants` 里，查看 `attempts[].tool` 比较实际选择，再对照 `total_cost_units`、`total_simulated_latency_ms`、`injected_timeouts` 和任务得分。工具费用按尝试累计，包括模拟超时和重试。模拟延迟是当前串行执行顺序下的累加值。实测工具耗时和模型费用使用原导出字段。稳定性场景可重复同一组 `--variant-seed` 比较策略，超时在业务函数执行前返回。
 
 统一配置位于 [tool_variants.py](automationbench/tool_variants.py)。可用 `uv run pytest -q tests/test_tool_variants.py` 做离线回放验证。
+
+### 成本、延迟与稳定性
+
+`multi-objective` 默认给 Gmail 搜索和 Google Sheets 的两种多行读取动作提供下列版本。其他动作使用 `cost-speed` 的版本与计费。题面、初始状态和评分器沿用原任务。
+
+| 版本 | 每次尝试成本 | 正常返回模拟延迟 | 单次超时概率 |
+| --- | ---: | ---: | ---: |
+| `economy` | 1 | 300 ms | 10% |
+| `fast` | 2 | 100 ms | 10% |
+| `reliable` | 2 | 300 ms | 1% |
+
+超时在底层工具执行前返回可重试错误，计入该版本的单次成本和 1,000 ms 模拟延迟。对应的故障抽样由种子、任务实例、原子动作、归一化参数和该查询的尝试序号确定。切换版本和插入其他调用都不改变对应尝试的随机数。此后同一查询成功返回时记作一次恢复，连续多次超时后成功也计一次恢复。
+
+```sh
+uv run python -m automationbench.scripts.paired_eval \
+  --model gpt-4.1-mini --variant-scenario multi-objective --variant-seed 0 \
+  --tasks finance.qb_recurring_journal --max-steps 64 --arm-timeout 3600 \
+  --output-dir visualizer/runs/local/multi-objective-seed0
+```
+
+输出 `cost.json`、`speed.json`、`stability.json` 和 `comparison.json`。三组使用相同的工具菜单和故障种子，只改变执行偏好。汇总展示工具成本、模拟延迟、超时与恢复次数、任务得分和 token 触顶。逐题展示各组实际版本与调用记录。更换种子时使用新的输出目录。
 
 ### 配对评测
 

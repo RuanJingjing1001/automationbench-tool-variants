@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 from automationbench.scripts import paired_eval
 from automationbench.scripts.paired_eval import compare_runs, load_pilot50
-from automationbench.tool_variants import variants_for
+from automationbench.tool_variants import MULTI_OBJECTIVE, variants_for
 
 
 def make_task(name, passed, cost, latency, tools):
@@ -174,3 +174,39 @@ def test_budget_scenario_gives_same_premium_different_latency_savings():
     assert (
         "3 cost units, 100 ms" in email[1].__doc__ and "3 cost units, 100 ms" in contact[1].__doc__
     )
+
+
+def test_multi_objective_paired_run_reports_three_preferences(monkeypatch, tmp_path):
+    args = SimpleNamespace(
+        output_dir=tmp_path / "multi",
+        budget=None,
+        model="test-model",
+        base_url=None,
+        api="chat_completions",
+        variant_seed=7,
+        max_steps=64,
+        max_concurrent=1,
+        arm_timeout=3600,
+    )
+    calls = []
+
+    async def evaluate(**kwargs):
+        from pathlib import Path
+
+        calls.append(kwargs)
+        task = make_task("t", True, 3, 1300, [("find", "find_economy"), ("find", "find_reliable")])
+        variant = task["tool_variants"]
+        variant.update(scenario=MULTI_OBJECTIVE, injected_timeouts=1)
+        variant["attempts"][-1]["recovered_after_timeout"] = True
+        Path(kwargs["export_json"]).write_text(json.dumps({"tasks": [task]}))
+
+    monkeypatch.setattr(paired_eval, "run_evaluation", evaluate)
+    report = asyncio.run(
+        paired_eval.run_pair(args, ("t",), ["finance"], variant_scenario=MULTI_OBJECTIVE)
+    )
+    assert [call["tool_preference"] for call in calls] == ["cost", "speed", "stability"]
+    assert all(call["toolset"] == "variants" and call["variant_seed"] == 7 for call in calls)
+    assert report["variant_seed"] == 7
+    assert report["tasks"][0]["stability"]["recovered_timeouts"] == 1
+    assert report["summary"]["by_arm"]["stability"]["total_simulated_latency_ms"] == 1300
+    assert report["summary"]["by_arm"]["stability"]["strict_pass_rate"] == 1.0
