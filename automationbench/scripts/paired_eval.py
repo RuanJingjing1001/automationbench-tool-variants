@@ -5,18 +5,27 @@
 import argparse
 import asyncio
 from collections import Counter
+from dataclasses import asdict
+from hashlib import sha256
 from itertools import combinations
 import json
 import os
 from pathlib import Path
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
 
 from automationbench.domains import get_combined_dataset
+from automationbench.scripts.complete_run import recompute_aggregates
 from automationbench.scripts.eval import _task_name, run_evaluation
-from automationbench.tool_variants import MULTI_OBJECTIVE, MULTI_OBJECTIVE_PROFILE_SCOPE
+from automationbench.tool_variants import (
+    MULTI_OBJECTIVE,
+    MULTI_OBJECTIVE_PROFILE_SCOPE,
+    PREFERENCES as EXECUTION_PREFERENCES,
+    SCENARIOS,
+)
 
 PILOT_TASKS = (
     "simple.email_sf_contact_phone_update",
@@ -30,15 +39,20 @@ DEFAULT_MAX_TASK_TOKENS = 400_000
 PILOT50_PATH = (
     Path(__file__).resolve().parents[2] / "benchmarks" / "holo4-effective-calls-gt10-pilot50.json"
 )
+PILOT25_PATH = PILOT50_PATH.with_name("holo4-effective-calls-pilot25-11-to-20.json")
 
 
 def load_pilot50(limit: int | None = None) -> tuple[str, ...]:
-    manifest = json.loads(PILOT50_PATH.read_text())
+    return load_pilot(PILOT50_PATH, 50, limit)
+
+
+def load_pilot(path: Path, size: int, limit: int | None) -> tuple[str, ...]:
+    manifest = json.loads(path.read_text())
     tasks = tuple(row["task"] for row in manifest["tasks"])
-    if len(tasks) != 50 or len(set(tasks)) != 50 or manifest["sample_size"] != 50:
-        raise ValueError("pilot50 manifest must contain 50 unique task IDs")
+    if len(tasks) != size or len(set(tasks)) != size or manifest["sample_size"] != size:
+        raise ValueError(f"pilot manifest must contain {size} unique task IDs")
     if limit is not None and not 1 <= limit <= len(tasks):
-        raise ValueError("pilot50 limit must be between 1 and 50")
+        raise ValueError(f"pilot limit must be between 1 and {size}")
     return tasks[:limit]
 
 
@@ -195,42 +209,75 @@ async def run_pair(
     max_task_tokens: int | None = None,
     variant_scenario: str | None = None,
 ) -> dict:
-    args.output_dir.mkdir(parents=True, exist_ok=False)
-    runs = {}
-    errors = {}
+    resume = getattr(args, "resume", False)
     scenario = variant_scenario or ("budget-speed" if args.budget is not None else "cost-speed")
     arms = ("native", *PREFERENCES) if include_native else PREFERENCES
     if scenario == MULTI_OBJECTIVE:
         arms = (*arms, "stability")
-    for arm in arms:
-        native = arm == "native"
-        raw_path = args.output_dir / f"{arm}.json"
-        print(f"Running {arm} arm", flush=True)
-        try:
-            async with asyncio.timeout(args.arm_timeout):
-                await run_evaluation(
-                    model=args.model,
-                    domains=domains,
-                    base_url=args.base_url,
-                    api=args.api,
-                    tasks=",".join(tasks),
-                    toolset="limited_zapier" if native else "variants",
-                    variant_scenario=scenario,
-                    variant_seed=args.variant_seed,
-                    tool_preference="neutral" if native else arm,
-                    tool_budget=None if native else args.budget,
-                    max_turns=args.max_steps,
-                    max_concurrent=args.max_concurrent,
-                    max_task_tokens=max_task_tokens,
-                    export_json=str(raw_path),
-                )
-            runs[arm] = json.loads(raw_path.read_text())
-        except Exception as exc:
-            # Preserve the other arm and report the failure without copying credentials or provider payloads.
-            errors[arm] = type(exc).__name__
-            runs[arm] = {}
-            print(f"{arm} evaluation did not finish ({errors[arm]})", flush=True)
 
+    async def evaluate(arm, requested, run_domains, path, concurrency):
+        native = arm == "native"
+        await run_evaluation(
+            model=args.model,
+            domains=run_domains,
+            base_url=args.base_url,
+            api=args.api,
+            tasks=",".join(requested),
+            toolset="limited_zapier" if native else "variants",
+            variant_scenario=scenario,
+            variant_seed=args.variant_seed,
+            tool_preference="neutral" if native else arm,
+            tool_budget=None if native else args.budget,
+            max_turns=args.max_steps,
+            max_concurrent=concurrency,
+            max_task_tokens=max_task_tokens,
+            export_json=str(path),
+        )
+        return json.loads(path.read_text())
+
+    if resume:
+        import fcntl
+
+        config = {
+            "model": args.model,
+            "endpoint_sha256": sha256((args.base_url or "").encode()).hexdigest(),
+            "api": args.api,
+            "arms": list(arms),
+            "scenario": scenario,
+            "profiles": [asdict(profile) for profile in SCENARIOS[scenario]],
+            "preferences": {arm: EXECUTION_PREFERENCES.get(arm, "") for arm in arms},
+            "variant_seed": args.variant_seed,
+            "profile_scope": MULTI_OBJECTIVE_PROFILE_SCOPE if scenario == MULTI_OBJECTIVE else None,
+            "budget": args.budget,
+            "max_steps": args.max_steps,
+            "max_task_tokens": max_task_tokens,
+        }
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        with (args.output_dir / ".resume.lock").open("a") as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise ValueError("another process is already running this experiment") from exc
+            tasks, runs, errors = await run_resumable(args, tasks, arms, config, evaluate)
+            return save_comparison(args, tasks, runs, errors, scenario, max_task_tokens)
+    else:
+        args.output_dir.mkdir(parents=True, exist_ok=False)
+        runs, errors = {}, {}
+        for arm in arms:
+            raw_path = args.output_dir / f"{arm}.json"
+            print(f"Running {arm} arm", flush=True)
+            try:
+                async with asyncio.timeout(args.arm_timeout):
+                    runs[arm] = await evaluate(arm, tasks, domains, raw_path, args.max_concurrent)
+            except Exception as exc:
+                errors[arm] = type(exc).__name__
+                runs[arm] = {}
+                print(f"{arm} evaluation did not finish ({errors[arm]})", flush=True)
+
+    return save_comparison(args, tasks, runs, errors, scenario, max_task_tokens)
+
+
+def save_comparison(args, tasks, runs, errors, scenario, max_task_tokens):
     report = compare_runs(tasks, runs, args.budget)
     report.update(model=args.model, scenario=scenario, budget=args.budget, run_errors=errors)
     if scenario == MULTI_OBJECTIVE:
@@ -238,8 +285,119 @@ async def run_pair(
         report["variant_profile_scope"] = MULTI_OBJECTIVE_PROFILE_SCOPE
     if max_task_tokens is not None:
         report["max_task_tokens"] = max_task_tokens
-    (args.output_dir / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
+    write_json(args.output_dir / "comparison.json", report)
     return report
+
+
+def write_json(path: Path, data: dict) -> None:
+    with NamedTemporaryFile(mode="w", dir=path.parent, encoding="utf-8", delete=False) as tmp:
+        temporary_path = Path(tmp.name)
+        try:
+            json.dump(data, tmp, indent=2)
+            tmp.write("\n")
+            tmp.close()
+            temporary_path.replace(path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
+
+
+async def run_resumable(args, requested, arms, config, evaluate):
+    directory = args.output_dir
+    manifest_path = directory / "experiment.json"
+    previous = []
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text())
+        old_config = manifest["config"]
+        changed = [key for key in config if old_config.get(key) != config[key]]
+        if changed or manifest.get("version") != 1:
+            raise ValueError(f"resume configuration changed: {', '.join(changed) or 'format'}")
+        previous = manifest["tasks"]
+    elif any(path.name != ".resume.lock" for path in directory.iterdir()):
+        raise ValueError("resume requires a new directory or one with experiment.json")
+
+    tasks = tuple(dict.fromkeys([*previous, *requested]))
+    write_json(manifest_path, {"version": 1, "config": config, "tasks": list(tasks)})
+    runs, errors = {}, {}
+    for arm in arms:
+        checkpoints = directory / ".rollouts" / arm
+        checkpoints.mkdir(parents=True, exist_ok=True)
+        records, pending, arm_errors = {}, [], {}
+        for name in tasks:
+            path = checkpoints / f"{sha256(name.encode()).hexdigest()}.json"
+            if path.exists():
+                records[name] = json.loads(path.read_text())
+            else:
+                pending.append((name, path))
+        print(f"{arm}: reusing {len(records)}, running {len(pending)}", flush=True)
+        slots = asyncio.Semaphore(args.max_concurrent)
+
+        async def run_one(name, path):
+            async with slots:
+                try:
+                    with TemporaryDirectory(dir=checkpoints) as temporary:
+                        result = await evaluate(
+                            arm,
+                            (name,),
+                            [name.split(".", 1)[0]],
+                            Path(temporary) / "result.json",
+                            1,
+                        )
+                    (task,) = result["tasks"]
+                    if task["name"] != name:
+                        raise ValueError("unexpected task in rollout export")
+                    aborted = name in result.get("summary", {}).get("aborted_tasks", [])
+                    status = arm_summary(task, aborted, args.budget, native=arm == "native")[
+                        "status"
+                    ]
+                    if status == "incomplete":
+                        arm_errors[name] = "IncompleteRollout"
+                    else:
+                        write_json(path, result)
+                    records[name] = result
+                except Exception as exc:
+                    arm_errors[name] = type(exc).__name__
+
+        try:
+            async with asyncio.timeout(args.arm_timeout):
+                await asyncio.gather(*(run_one(name, path) for name, path in pending))
+        except TimeoutError:
+            arm_errors.update(
+                (name, "TimeoutError")
+                for name, _ in pending
+                if name not in records and name not in arm_errors
+            )
+        if arm_errors:
+            errors[arm] = arm_errors
+
+        exports = [records[name] for name in tasks if name in records]
+        rows = [dict(result["tasks"][0], id=index) for index, result in enumerate(exports, 1)]
+        meta = dict(exports[0].get("meta", {})) if exports else {}
+        meta.update(
+            domains=list(dict.fromkeys(task["name"].split(".", 1)[0] for task in rows)),
+            total_tasks=len(rows),
+            duration_seconds=sum(
+                result.get("meta", {}).get("duration_seconds", 0) for result in exports
+            ),
+        )
+        combined = {"meta": meta, "tasks": rows}
+        recompute_aggregates(combined, args.max_steps)
+        combined["summary"]["aborted_tasks"] = [
+            name
+            for name in tasks
+            if name in records and name in records[name].get("summary", {}).get("aborted_tasks", [])
+        ]
+        for key, field in (
+            ("total_cached_input_tokens", "cached_input_tokens"),
+            ("total_reasoning_tokens", "reasoning_tokens"),
+            ("total_tool_calls", "num_tool_calls"),
+            ("total_model_time_s", "model_time_s"),
+            ("total_tool_time_s", "tool_time_s"),
+            ("tasks_refusal_stopped", "died_on_refusal"),
+        ):
+            combined["summary"][key] = sum(task.get(field) or 0 for task in rows)
+        runs[arm] = combined
+        write_json(directory / f"{arm}.json", combined)
+    return tasks, runs, errors
 
 
 def print_report(report: dict) -> None:
@@ -327,15 +485,24 @@ def main() -> None:
     task_selection.add_argument(
         "--pilot50", action="store_true", help="Use the committed 50-task sample"
     )
-    parser.add_argument("--limit", type=int, help="Run only the first N tasks in --pilot50")
+    task_selection.add_argument(
+        "--pilot25", action="store_true", help="Use the 25-task sample with 11–20 effective calls"
+    )
+    parser.add_argument("--limit", type=int, help="Select the first N tasks from a pilot manifest")
     parser.add_argument(
-        "--output-dir", type=Path, required=True, help="New directory for the reports"
+        "--resume", action="store_true", help="Save each task and arm and reuse completed runs"
     )
     parser.add_argument(
-        "--arm-timeout", type=int, help="Seconds allowed per arm (pilot50: 3600, otherwise: 300)"
+        "--include-native", action="store_true", help="Also run the original tools without variants"
     )
     parser.add_argument(
-        "--max-steps", type=int, help="Model turns per task (pilot50: 64, otherwise: 16)"
+        "--output-dir", type=Path, required=True, help="Report directory (reuse with --resume)"
+    )
+    parser.add_argument(
+        "--arm-timeout", type=int, help="Seconds allowed per arm (pilots: 3600, otherwise: 300)"
+    )
+    parser.add_argument(
+        "--max-steps", type=int, help="Model turns per task (pilots: 64, otherwise: 16)"
     )
     parser.add_argument("--max-concurrent", type=int, default=2)
     parser.add_argument(
@@ -354,12 +521,15 @@ def main() -> None:
         "--budget", type=int, help="Tool cost ceiling stated in the variant prompts"
     )
     args = parser.parse_args()
-    if args.limit is not None and not args.pilot50:
-        parser.error("--limit requires --pilot50")
+    pilot = args.pilot50 or args.pilot25
+    if args.limit is not None and not pilot:
+        parser.error("--limit requires --pilot50 or --pilot25")
+    if args.pilot25 and args.variant_scenario is None and args.budget is None:
+        args.variant_scenario = MULTI_OBJECTIVE
     if args.arm_timeout is None:
-        args.arm_timeout = 3600 if args.pilot50 else 300
+        args.arm_timeout = 3600 if pilot else 300
     if args.max_steps is None:
-        args.max_steps = 64 if args.pilot50 else 16
+        args.max_steps = 64 if pilot else 16
     if (
         args.arm_timeout < 1
         or args.max_steps < 1
@@ -368,13 +538,17 @@ def main() -> None:
         or (args.budget is not None and args.budget < 1)
     ):
         parser.error("timeout, step limit, concurrency and token budgets must be positive")
-    if args.output_dir.exists():
+    if args.output_dir.exists() and not args.resume:
         parser.error("--output-dir must be a new directory")
-    if args.pilot50:
+    if pilot:
         try:
-            tasks = load_pilot50(args.limit)
+            tasks = (
+                load_pilot50(args.limit)
+                if args.pilot50
+                else load_pilot(PILOT25_PATH, 25, args.limit)
+            )
         except (OSError, ValueError, KeyError, TypeError) as exc:
-            parser.error(f"cannot load pilot50 tasks: {exc}")
+            parser.error(f"cannot load pilot tasks: {exc}")
     elif args.tasks is not None:
         tasks = tuple(dict.fromkeys(name.strip() for name in args.tasks.split(",") if name.strip()))
     else:
@@ -388,16 +562,19 @@ def main() -> None:
         parser.error(str(exc))
     if unknown := set(tasks) - available:
         parser.error(f"unknown task IDs {', '.join(sorted(unknown))}")
-    report = asyncio.run(
-        run_pair(
-            args,
-            tasks,
-            domains,
-            include_native=args.variant_scenario != MULTI_OBJECTIVE,
-            max_task_tokens=args.max_task_tokens,
-            variant_scenario=args.variant_scenario,
+    try:
+        report = asyncio.run(
+            run_pair(
+                args,
+                tasks,
+                domains,
+                include_native=args.include_native or args.variant_scenario != MULTI_OBJECTIVE,
+                max_task_tokens=args.max_task_tokens,
+                variant_scenario=args.variant_scenario,
+            )
         )
-    )
+    except (OSError, ValueError, KeyError) as exc:
+        parser.error(str(exc))
     print_report(report)
     print(f"Comparison saved to {args.output_dir / 'comparison.json'}")
     if report["summary"]["with_incomplete_arm"]:

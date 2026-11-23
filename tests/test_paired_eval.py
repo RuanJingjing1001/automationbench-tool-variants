@@ -2,7 +2,10 @@
 
 import asyncio
 import json
+from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 from automationbench.scripts import paired_eval
 from automationbench.scripts.paired_eval import compare_runs, load_pilot50
@@ -211,3 +214,80 @@ def test_multi_objective_paired_run_reports_three_preferences(monkeypatch, tmp_p
     assert report["tasks"][0]["stability"]["recovered_timeouts"] == 1
     assert report["summary"]["by_arm"]["stability"]["total_simulated_latency_ms"] == 1300
     assert report["summary"]["by_arm"]["stability"]["strict_pass_rate"] == 1.0
+
+
+def test_resume_adds_tasks_and_only_retries_incomplete_arms(monkeypatch, tmp_path):
+    pilot = paired_eval.load_pilot(paired_eval.PILOT25_PATH, 25, None)
+    first = "support.gorgias_quality_audit"
+    second = "finance.vendor_credit_application"
+    assert first in pilot and second in pilot
+    calls = []
+
+    async def evaluate(**kwargs):
+        name = kwargs["tasks"]
+        arm = kwargs["tool_preference"]
+        calls.append((name, arm))
+        task = make_task(name, True, 1, 300, [("find", "find_economy")])
+        if arm == "neutral":
+            del task["tool_variants"]
+        if name == first and arm == "speed":
+            task.update(score=0.0, passed=False)
+        if name == first and arm == "cost":
+            task.update(score=0.5, passed=False, stop_condition="token_budget_exceeded")
+        if name == first and arm == "stability" and calls.count((name, arm)) == 1:
+            task.update(errors=["connection error"])
+        Path(kwargs["export_json"]).write_text(json.dumps({"tasks": [task]}))
+
+    monkeypatch.setattr(paired_eval, "run_evaluation", evaluate)
+    args = SimpleNamespace(
+        resume=True,
+        output_dir=tmp_path / "pilot",
+        model="test-model",
+        base_url=None,
+        api="chat_completions",
+        budget=None,
+        variant_seed=0,
+        max_steps=64,
+        max_concurrent=1,
+        arm_timeout=3600,
+    )
+
+    def run(tasks):
+        return asyncio.run(
+            paired_eval.run_pair(
+                args,
+                tasks,
+                ["support", "finance"],
+                include_native=True,
+                variant_scenario=MULTI_OBJECTIVE,
+            )
+        )
+
+    assert run((first,))["summary"]["with_incomplete_arm"] == 1
+    calls.clear()
+    calls.append((first, "stability"))  # Allow the interrupted attempt to succeed on retry.
+    report = run((second,))
+    assert set(calls[1:]) == {
+        (second, "neutral"),
+        (second, "cost"),
+        (second, "speed"),
+        (first, "stability"),
+        (second, "stability"),
+    }
+    assert len(calls[1:]) == 5
+    assert report["summary"]["with_incomplete_arm"] == 0
+    assert report["tasks"][0]["cost"]["status"] == "token_budget_exceeded"
+    assert report["tasks"][0]["speed"]["status"] == "failed"
+    assert report["tasks"][0]["native"]["status"] == "passed"
+    assert [task["task"] for task in report["tasks"]] == [first, second]
+    assert [t["id"] for t in json.loads((args.output_dir / "cost.json").read_text())["tasks"]] == [
+        1,
+        2,
+    ]
+    calls.clear()
+    run((first, second))
+    assert not calls
+    args.variant_seed = 1
+    with pytest.raises(ValueError, match="variant_seed"):
+        run((first, second))
+    assert not calls

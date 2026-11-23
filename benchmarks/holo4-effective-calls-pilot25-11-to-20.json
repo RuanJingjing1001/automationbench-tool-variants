@@ -1,0 +1,229 @@
+{
+  "source": "benchmarks/holo4-effective-calls-gt10-pilot50.json",
+  "trace_metadata_source": "benchmarks/holo4-effective-calls-gt10.json",
+  "selection_rule": "Keep Pilot 50 tasks whose longest recorded trajectory has 11 to 20 effective calls, inclusive. Retain the Pilot 50 order.",
+  "population_size": 50,
+  "sample_size": 25,
+  "tasks_by_domain": {
+    "finance": 4,
+    "hr": 5,
+    "marketing": 1,
+    "operations": 7,
+    "sales": 4,
+    "support": 4
+  },
+  "tasks_by_max_effective_calls": {
+    "11": 4,
+    "12": 3,
+    "13": 2,
+    "14": 1,
+    "15": 1,
+    "16": 4,
+    "17": 2,
+    "18": 1,
+    "19": 6,
+    "20": 1
+  },
+  "tasks": [
+    {
+      "task": "finance.qb_recurring_journal",
+      "example_id": 4083,
+      "domain": "finance",
+      "max_effective_calls": 19,
+      "longest_trace_id": "finance-qb-recurring-journal-4083-7a7a18b0",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "operations.monday_calendar_emergency_drill",
+      "example_id": 1219,
+      "domain": "operations",
+      "max_effective_calls": 17,
+      "longest_trace_id": "operations-monday-calendar-emergency-drill-1219-ae3f34ff",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "hr.headcount_planning",
+      "example_id": 5130,
+      "domain": "hr",
+      "max_effective_calls": 12,
+      "longest_trace_id": "hr-headcount-planning-5130-7f7dd284",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "support.gorgias_quality_audit",
+      "example_id": 1469,
+      "domain": "support",
+      "max_effective_calls": 11,
+      "longest_trace_id": "support-gorgias-quality-audit-1469-d135b5bf",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "operations.role_based_access_audit",
+      "example_id": 1338,
+      "domain": "operations",
+      "max_effective_calls": 13,
+      "longest_trace_id": "operations-role-based-access-audit-1338-12b41f8e",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "finance.vendor_credit_application",
+      "example_id": 4048,
+      "domain": "finance",
+      "max_effective_calls": 17,
+      "longest_trace_id": "finance-vendor-credit-application-4048-df0eb709",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "operations.loading_dock_scheduling",
+      "example_id": 1391,
+      "domain": "operations",
+      "max_effective_calls": 16,
+      "longest_trace_id": "operations-loading-dock-scheduling-1391-49fd20ba",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "hr.recruitment_dedup_alert",
+      "example_id": 5069,
+      "domain": "hr",
+      "max_effective_calls": 11,
+      "longest_trace_id": "hr-recruitment-dedup-alert-5069-c7b83d7f",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "hr.contractor_renewal",
+      "example_id": 5121,
+      "domain": "hr",
+      "max_effective_calls": 19,
+      "longest_trace_id": "hr-contractor-renewal-5121-d746cb49",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "finance.travel_advance_settlement",
+      "example_id": 4063,
+      "domain": "finance",
+      "max_effective_calls": 16,
+      "longest_trace_id": "finance-travel-advance-settlement-4063-fec1d8ff",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "finance.prepaid_amortization",
+      "example_id": 4058,
+      "domain": "finance",
+      "max_effective_calls": 15,
+      "longest_trace_id": "finance-prepaid-amortization-4058-5ad81e1f",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "support.gorgias_order_lookup",
+      "example_id": 1405,
+      "domain": "support",
+      "max_effective_calls": 18,
+      "longest_trace_id": "support-gorgias-order-lookup-1405-8e0221e2",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "sales.dependency_chain",
+      "example_id": 517,
+      "domain": "sales",
+      "max_effective_calls": 14,
+      "longest_trace_id": "sales-dependency-chain-517-8ceb4f4d",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "operations.sensor_monitoring_alert",
+      "example_id": 1322,
+      "domain": "operations",
+      "max_effective_calls": 11,
+      "longest_trace_id": "operations-sensor-monitoring-alert-1322-6d368df7",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "sales.format_ambiguity",
+      "example_id": 511,
+      "domain": "sales",
+      "max_effective_calls": 20,
+      "longest_trace_id": "sales-format-ambiguity-511-3605d23c",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "sales.historical_win_loss_recap",
+      "example_id": 1204,
+      "domain": "sales",
+      "max_effective_calls": 19,
+      "longest_trace_id": "sales-historical-win-loss-recap-1204-ce223092",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "support.zoho_multitenant_isolation",
+      "example_id": 1541,
+      "domain": "support",
+      "max_effective_calls": 11,
+      "longest_trace_id": "support-zoho-multitenant-isolation-1541-62e243c2",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "operations.asana_fire_drill",
+      "example_id": 1201,
+      "domain": "operations",
+      "max_effective_calls": 13,
+      "longest_trace_id": "operations-asana-fire-drill-1201-2ddcfd7d",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "hr.notion_meeting_notes",
+      "example_id": 5067,
+      "domain": "hr",
+      "max_effective_calls": 12,
+      "longest_trace_id": "hr-notion-meeting-notes-5067-addf7ab4",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "operations.asana_safety_walk_log",
+      "example_id": 1208,
+      "domain": "operations",
+      "max_effective_calls": 12,
+      "longest_trace_id": "operations-asana-safety-walk-log-1208-04bc4698",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "hr.disciplinary_action_tracking",
+      "example_id": 5058,
+      "domain": "hr",
+      "max_effective_calls": 16,
+      "longest_trace_id": "hr-disciplinary-action-tracking-5058-e07ddb81",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "sales.soft_matching",
+      "example_id": 515,
+      "domain": "sales",
+      "max_effective_calls": 19,
+      "longest_trace_id": "sales-soft-matching-515-05e75060",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "operations.twilio_afterhours_incident",
+      "example_id": 1248,
+      "domain": "operations",
+      "max_effective_calls": 19,
+      "longest_trace_id": "operations-twilio-afterhours-incident-1248-91aea130",
+      "longest_trace_passed": false
+    },
+    {
+      "task": "support.freshdesk_contract_renewal",
+      "example_id": 1490,
+      "domain": "support",
+      "max_effective_calls": 16,
+      "longest_trace_id": "support-freshdesk-contract-renewal-1490-9408241e",
+      "longest_trace_passed": true
+    },
+    {
+      "task": "marketing.seo_brief_prioritization",
+      "example_id": 1161,
+      "domain": "marketing",
+      "max_effective_calls": 19,
+      "longest_trace_id": "marketing-seo-brief-prioritization-1161-d14e9f8e",
+      "longest_trace_passed": false
+    }
+  ]
+}

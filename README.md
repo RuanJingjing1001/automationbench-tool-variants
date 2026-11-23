@@ -84,6 +84,21 @@ uv run python -m automationbench.scripts.paired_eval \
 
 三组使用相同的题面、初始状态和评分器。原生组使用每题指定的 `limited_zapier` 工具，执行偏好为中性。成本组和延迟组共享同一套变体，并在系统提示词末尾追加各自的执行偏好。经济版每次 1 成本单位、300 ms 模拟延迟，快速版每次 3 成本单位、100 ms 模拟延迟。查看 `comparison.json` 中每题三组的任务得分，以及两组变体的 `variant_attempt_counts`、成本和模拟延迟。用任务得分和完成状态判断两组结果是否可比。
 
+### 分批运行 25 道中等长度任务
+
+[Pilot 25 清单](benchmarks/holo4-effective-calls-pilot25-11-to-20.json)选自 Pilot 50，历史有效调用数在 11–20 次。以下先跑清单中两道有成功历史轨迹的题，包含原生组和三种偏好组。
+
+```sh
+uv run python -m automationbench.scripts.paired_eval \
+  --model deepseek-v4.1-flash --api chat_completions \
+  --tasks support.gorgias_quality_audit,finance.vendor_credit_application \
+  --variant-scenario multi-objective --variant-seed 0 \
+  --max-steps 64 --max-task-tokens 400000 --arm-timeout 3600 --max-concurrent 1 \
+  --include-native --resume --output-dir visualizer/runs/local/pilot25-v1
+```
+
+第二批将 `--tasks ...` 换成 `--pilot25 --limit 6`，其余实验参数和输出目录照用。去掉 `--limit 6` 可扩到全部 25 道。使用 `--resume` 时，程序逐题逐组保存结果，并把后续的题追加到同一实验。正常低分和 token 触顶都保留，缺失或异常中断的组可以重新执行。输出目录首次使用必须为空或不存在。程序根据 `experiment.json` 检查实验配置，其他配置应使用新目录。原生组运行任务自带的工具。
+
 ### 带预算的配对评测
 
 可对联系人更新题加 `--budget 5 --tasks simple.email_sf_contact_phone_update`，使用不同的加速收益。查邮件、定位联系人和写入手机号码的快速版分别节省 600、250 和 50 ms，一条三步轨迹最多升级一个动作。预算写入两组提示词，报告记录实际是否超预算。
