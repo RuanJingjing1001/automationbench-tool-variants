@@ -58,6 +58,8 @@ def arm_summary(
     result = {"status": status, "score": task.get("score")}
     if "input_tokens" in task and "output_tokens" in task:
         result["model_tokens"] = task["input_tokens"] + task["output_tokens"]
+    if "lookup_recovery" in task:
+        result["lookup_recovery"] = task["lookup_recovery"]
     if report is not None:
         cost = report["total_cost_units"]
         attempts = report["attempts"]
@@ -194,6 +196,7 @@ async def run_pair(
     include_native: bool = False,
     max_task_tokens: int | None = None,
     variant_scenario: str | None = None,
+    lookup_retry_limit: int = 0,
 ) -> dict:
     args.output_dir.mkdir(parents=True, exist_ok=False)
     runs = {}
@@ -222,6 +225,7 @@ async def run_pair(
                     max_turns=args.max_steps,
                     max_concurrent=args.max_concurrent,
                     max_task_tokens=max_task_tokens,
+                    lookup_retry_limit=lookup_retry_limit,
                     export_json=str(raw_path),
                 )
             runs[arm] = json.loads(raw_path.read_text())
@@ -232,7 +236,8 @@ async def run_pair(
             print(f"{arm} evaluation did not finish ({errors[arm]})", flush=True)
 
     report = compare_runs(tasks, runs, args.budget)
-    report.update(model=args.model, scenario=scenario, budget=args.budget, run_errors=errors)
+    report.update(model=args.model, scenario=scenario, budget=args.budget,
+                  run_errors=errors, lookup_retry_limit=lookup_retry_limit)
     if scenario == MULTI_OBJECTIVE:
         report["variant_seed"] = args.variant_seed
     if max_task_tokens is not None:
@@ -343,6 +348,8 @@ def main() -> None:
         default=DEFAULT_MAX_TASK_TOKENS,
         help="Cumulative model tokens per task in each arm (default: 400000)",
     )
+    parser.add_argument("--lookup-retry-limit", type=int, default=0,
+                        help="Pause a lookup after consecutive not-found errors (0: observe only)")
     parser.add_argument("--variant-seed", type=int, default=0)
     parser.add_argument(
         "--variant-scenario",
@@ -364,6 +371,7 @@ def main() -> None:
         or args.max_steps < 1
         or args.max_concurrent < 1
         or args.max_task_tokens < 1
+        or args.lookup_retry_limit < 0
         or (args.budget is not None and args.budget < 1)
     ):
         parser.error("timeout, step limit, concurrency and token budgets must be positive")
@@ -395,6 +403,7 @@ def main() -> None:
             include_native=args.variant_scenario != MULTI_OBJECTIVE,
             max_task_tokens=args.max_task_tokens,
             variant_scenario=args.variant_scenario,
+            lookup_retry_limit=args.lookup_retry_limit,
         )
     )
     print_report(report)

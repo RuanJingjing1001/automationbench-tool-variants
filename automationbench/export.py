@@ -219,6 +219,9 @@ def export_results(
             "end_state": output.get("_end_state"),
         }
 
+        if output.get("lookup_recovery") is not None:
+            task_result["lookup_recovery"] = output["lookup_recovery"]
+
         if output.get("tool_variants") is not None:
             task_result["tool_variants"] = output["tool_variants"]
         if output.get("stop_condition") == "token_budget_exceeded":

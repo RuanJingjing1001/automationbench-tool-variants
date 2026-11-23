@@ -227,6 +227,55 @@ uv run auto-bench --model claude-haiku-4-5-20251001
 | `--export-json`      | auto             | Path to export results JSON                             |
 | `--save-every`       | `1`              | Save incremental results every N tasks                  |
 
+## Lookup recovery harness
+
+For direct native and variant tools, `--lookup-retry-limit 3` adds a recovery
+instruction to the third consecutive structured `not found` response from
+the same business action. Changing the guessed ID or the API profile does not
+reset the streak. The guard blocks further requests for that action until
+another action returns a successful structured response. A blocked request
+still gets a tool message, but does not execute the tool or incur simulated
+tool cost or latency. Retryable timeouts do not count toward the streak.
+`--lookup-retry-limit 0` (default) records the same failure metrics without
+intervening. The per-task token cap still applies independently.
+
+Audit a historical control trace without model requests:
+
+```bash
+uv run python -m automationbench.scripts.audit_lookup_recovery path/to/cost.json
+```
+
+The audit identifies the first trigger and calls that would be blocked if the
+recorded sequence stayed fixed, including calls whose recorded responses were
+not `not found`. These are checks for trigger coverage and potential false
+positives. They cannot measure the behavior of a model that receives the Skill.
+
+For a paid pilot, run one task under the same cost-preference configuration
+with the guard off and on. Reuse a historical control only if the model, task
+state, tool scenario, preference, variant seed, model-turn limit and token cap
+match, and treat each single pair as a case study. The loop below runs two
+rollouts total. Keep the model credential in the environment.
+
+```bash
+for limit in 0 3; do
+  uv run auto-bench --model deepseek-v4.1-flash --api chat_completions \
+    --base-url https://api.ai-gaochao.cn/v1 \
+    --domains hr --tasks hr.headcount_planning --toolset variants \
+    --variant-scenario multi-objective --tool-preference cost --variant-seed 0 \
+    --max-steps 64 --max-task-tokens 400000 --max-concurrent 1 \
+    --lookup-retry-limit "$limit" \
+    --export-json "visualizer/runs/local/headcount-lookup-guard-$limit.json"
+done
+```
+
+Compare `lookup_recovery.repeated_not_found_calls` as the primary metric. It
+counts executed failures after the first failure in each consecutive streak.
+Also report total `not_found_calls`, `blocked_calls`, task score, model tokens,
+and whether the token cap was hit. Inspect the first trigger to see whether
+the model switched lookup methods and resumed work. If the control does not
+trigger on this attempt, the pair does not estimate savings on a stuck run.
+Use the same limit in all arms of subsequent mainline experiments.
+
 ## Prime Intellect Environments Hub
 
 AutomationBench is available as a hosted environment on Prime Intellect:

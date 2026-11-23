@@ -15,6 +15,7 @@ import verifiers as vf
 from datasets import Dataset
 from verifiers.types import AssistantMessage, ToolMessage
 
+from automationbench.lookup_recovery import LookupRecovery, RECOVERY_INSTRUCTION
 from automationbench.schema.world import WorldState
 from automationbench.task_contract import TASK_CONTRACT_SCHEMA, task_contract_sha256
 from automationbench.tool_variants import VariantExecution, variants_for
@@ -105,6 +106,7 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         variant_scenario: str = "cost-speed",
         variant_seed: int = 0,
         max_task_tokens: int | None = None,
+        lookup_retry_limit: int = 0,
         **kwargs,
     ):
         # Initialize parent with empty tools (we'll add them with args_to_skip)
@@ -122,6 +124,10 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         self.variant_scenario = variant_scenario
         self.variant_seed = variant_seed
         self.max_task_tokens = max_task_tokens
+        if lookup_retry_limit < 0:
+            raise ValueError("lookup_retry_limit must be nonnegative")
+        self.lookup_retry_limit = lookup_retry_limit
+        self._base_action_by_tool: dict[str, str] = {}
         self._variant_names: dict[str, tuple[str, ...]] = {}
         # Meta-tools only for "zapier" toolset; "limited_zapier" and "api" use direct tool access
         if use_meta_tools is None:
@@ -153,6 +159,7 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
                     hidden.append("world")
                 for variant in variants:
                     self.add_tool(variant, args_to_skip=hidden)
+                    self._base_action_by_tool[variant.__name__] = action.__name__
         else:
             # Register tools based on toolset selection
             tool_list = (
@@ -294,6 +301,11 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         )
         state["world"] = world
         state["initial_state"] = copy.deepcopy(initial_state_dict)
+
+        if self.toolset in ("limited_zapier", "variants"):
+            recovery = LookupRecovery(self.lookup_retry_limit)
+            state["_lookup_recovery"] = recovery
+            state["lookup_recovery"] = recovery.report
 
         # Filter tools based on task specification
         if self.use_meta_tools:
@@ -487,7 +499,33 @@ class AutomationBenchEnv(vf.StatefulToolEnv):
         perf["tool_calls"] += len(tool_calls) if tool_calls else 0
 
         t0 = time.monotonic()
-        tool_messages = await super().env_response(messages, state, **kwargs)
+        recovery = state.get("_lookup_recovery")
+        if recovery is not None and isinstance(last_msg, AssistantMessage) and tool_calls:
+            tool_messages = []
+            for call in tool_calls:
+                action = self._base_action_by_tool.get(call.name, call.name)
+                if action in recovery.paused_actions:
+                    recovery.report["blocked_calls"] += 1
+                    tool_messages.append(ToolMessage(
+                        role="tool",
+                        tool_call_id=call.id,
+                        content=json.dumps({
+                            "error": RECOVERY_INSTRUCTION,
+                            "code": "lookup_recovery_required",
+                        }),
+                    ))
+                    continue
+
+                single_call = last_msg.model_copy(update={"tool_calls": [call]})
+                responses = await super().env_response([*messages[:-1], single_call], state, **kwargs)
+                for response in responses:
+                    if recovery.observe(action, response.content, call.id):
+                        result = json.loads(response.content)
+                        result["recovery_skill"] = RECOVERY_INSTRUCTION
+                        response.content = json.dumps(result)
+                tool_messages.extend(responses)
+        else:
+            tool_messages = await super().env_response(messages, state, **kwargs)
         perf["tool_time_s"] += time.monotonic() - t0
 
         return tool_messages

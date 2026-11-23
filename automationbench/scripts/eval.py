@@ -221,10 +221,13 @@ async def run_evaluation(
     tool_preference: str = "neutral",
     tool_budget: int | None = None,
     max_task_tokens: int | None = None,
+    lookup_retry_limit: int = 0,
 ) -> None:
     """Run AutomationBench evaluation."""
     if max_task_tokens is not None and max_task_tokens < 1:
         raise ValueError("max_task_tokens must be positive")
+    if lookup_retry_limit < 0:
+        raise ValueError("lookup_retry_limit must be nonnegative")
     # Create dataset and rubric
     dataset = get_combined_dataset(domains)
 
@@ -324,6 +327,7 @@ async def run_evaluation(
         variant_scenario=variant_scenario,
         variant_seed=variant_seed,
         max_task_tokens=max_task_tokens,
+        lookup_retry_limit=lookup_retry_limit,
     )
     console.print(f"[key]Toolset:[/key] {toolset}")
 
@@ -457,7 +461,8 @@ async def run_evaluation(
         rollouts_per_example=1,
         max_concurrent=max_concurrent,
         state_columns=["_usage", "_debug", "_assertion_results", "_end_state", "_perf"]
-        + (["tool_variants"] if toolset == "variants" else []),
+        + (["tool_variants"] if toolset == "variants" else [])
+        + (["lookup_recovery"] if toolset in ("limited_zapier", "variants") else []),
         on_start=on_start,
         on_progress=on_progress,
     )
@@ -484,6 +489,7 @@ async def run_evaluation(
                 "_perf": ro.get("_perf"),
                 "stop_condition": ro.get("stop_condition"),
                 "tool_variants": ro.get("tool_variants"),
+                "lookup_recovery": ro.get("lookup_recovery"),
             }
         )
 
@@ -515,6 +521,8 @@ async def run_evaluation(
     # Export results if requested
     if export_json:
         extra_meta = {"batch": True} if batch else {}
+        if toolset in ("limited_zapier", "variants"):
+            extra_meta["lookup_retry_limit"] = lookup_retry_limit
         if toolset == "variants":
             extra_meta.update(variant_scenario=variant_scenario, variant_seed=variant_seed)
         if tool_preference != "neutral":
@@ -592,6 +600,8 @@ Examples:
         default=50,
         help="Maximum number of steps (model responses) per task (default: 50)",
     )
+    parser.add_argument("--lookup-retry-limit", type=int, default=0,
+                        help="Pause a lookup after this many consecutive not-found errors (0: observe only)")
     parser.add_argument(
         "--max-task-tokens", type=int, help="Stop each task at this cumulative model token threshold"
     )
@@ -805,6 +815,7 @@ Examples:
             variant_scenario=args.variant_scenario,
             variant_seed=args.variant_seed,
             max_task_tokens=args.max_task_tokens,
+            lookup_retry_limit=args.lookup_retry_limit,
             tool_preference=args.tool_preference,
             max_concurrent=args.max_concurrent,
             search_top_k=args.search_top_k,
