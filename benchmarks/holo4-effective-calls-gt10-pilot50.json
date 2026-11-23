@@ -1,0 +1,310 @@
+{
+  "source": "benchmarks/holo4-effective-calls-gt10.json",
+  "source_commit": "6a94b070a8a5a88cfdcd221e05eabde4bf2069cd",
+  "seed": 42,
+  "method": "Sort by task ID, then sample without replacement using a partial Fisher–Yates shuffle. Before each draw, advance the 32-bit state with state = (1664525 * state + 1013904223) mod 2^32; choose index i + floor(state * (N - i) / 2^32).",
+  "population_size": 532,
+  "sample_size": 50,
+  "tasks": [
+    {
+      "task": "hr.monday_succession_planning",
+      "example_id": 5092,
+      "domain": "hr",
+      "max_effective_calls": 38
+    },
+    {
+      "task": "finance.qb_recurring_journal",
+      "example_id": 4083,
+      "domain": "finance",
+      "max_effective_calls": 19
+    },
+    {
+      "task": "operations.monday_calendar_emergency_drill",
+      "example_id": 1219,
+      "domain": "operations",
+      "max_effective_calls": 17
+    },
+    {
+      "task": "hr.headcount_planning",
+      "example_id": 5130,
+      "domain": "hr",
+      "max_effective_calls": 12
+    },
+    {
+      "task": "marketing.event_followup_personalization",
+      "example_id": 1215,
+      "domain": "marketing",
+      "max_effective_calls": 33
+    },
+    {
+      "task": "finance.expense_split_allocation",
+      "example_id": 4092,
+      "domain": "finance",
+      "max_effective_calls": 22
+    },
+    {
+      "task": "marketing.social_comment_response_queue",
+      "example_id": 1185,
+      "domain": "marketing",
+      "max_effective_calls": 21
+    },
+    {
+      "task": "finance.wave_tax_compliance",
+      "example_id": 4043,
+      "domain": "finance",
+      "max_effective_calls": 28
+    },
+    {
+      "task": "support.helpscout_customer_merge",
+      "example_id": 1511,
+      "domain": "support",
+      "max_effective_calls": 21
+    },
+    {
+      "task": "support.zoho_risk_scoring",
+      "example_id": 1537,
+      "domain": "support",
+      "max_effective_calls": 27
+    },
+    {
+      "task": "support.gorgias_quality_audit",
+      "example_id": 1469,
+      "domain": "support",
+      "max_effective_calls": 11
+    },
+    {
+      "task": "operations.contractor_onboarding_workflow",
+      "example_id": 1331,
+      "domain": "operations",
+      "max_effective_calls": 51
+    },
+    {
+      "task": "sales.calendly_availability_based_routing",
+      "example_id": 1148,
+      "domain": "sales",
+      "max_effective_calls": 34
+    },
+    {
+      "task": "support.helpcrunch_usage_alerts",
+      "example_id": 1545,
+      "domain": "support",
+      "max_effective_calls": 36
+    },
+    {
+      "task": "operations.role_based_access_audit",
+      "example_id": 1338,
+      "domain": "operations",
+      "max_effective_calls": 13
+    },
+    {
+      "task": "finance.vendor_credit_application",
+      "example_id": 4048,
+      "domain": "finance",
+      "max_effective_calls": 17
+    },
+    {
+      "task": "hr.benefits_enrollment_review",
+      "example_id": 5134,
+      "domain": "hr",
+      "max_effective_calls": 21
+    },
+    {
+      "task": "support.zendesk_cross_org_merge",
+      "example_id": 1483,
+      "domain": "support",
+      "max_effective_calls": 27
+    },
+    {
+      "task": "support.intercom_sf_opportunity_alerts",
+      "example_id": 1475,
+      "domain": "support",
+      "max_effective_calls": 23
+    },
+    {
+      "task": "support.hiver_cross_team_handoff",
+      "example_id": 1553,
+      "domain": "support",
+      "max_effective_calls": 21
+    },
+    {
+      "task": "operations.linkedin_job_change",
+      "example_id": 1299,
+      "domain": "operations",
+      "max_effective_calls": 30
+    },
+    {
+      "task": "hr.employee_request_routing",
+      "example_id": 5096,
+      "domain": "hr",
+      "max_effective_calls": 24
+    },
+    {
+      "task": "operations.loading_dock_scheduling",
+      "example_id": 1391,
+      "domain": "operations",
+      "max_effective_calls": 16
+    },
+    {
+      "task": "hr.recruitment_dedup_alert",
+      "example_id": 5069,
+      "domain": "hr",
+      "max_effective_calls": 11
+    },
+    {
+      "task": "support.reamaze_multi_channel_dedup",
+      "example_id": 1584,
+      "domain": "support",
+      "max_effective_calls": 22
+    },
+    {
+      "task": "support.freshdesk_journey_mapping",
+      "example_id": 1493,
+      "domain": "support",
+      "max_effective_calls": 23
+    },
+    {
+      "task": "hr.contractor_renewal",
+      "example_id": 5121,
+      "domain": "hr",
+      "max_effective_calls": 19
+    },
+    {
+      "task": "support.freshdesk_sla_monitoring",
+      "example_id": 1458,
+      "domain": "support",
+      "max_effective_calls": 22
+    },
+    {
+      "task": "operations.asana_slack_sheets_audit",
+      "example_id": 1235,
+      "domain": "operations",
+      "max_effective_calls": 22
+    },
+    {
+      "task": "finance.travel_advance_settlement",
+      "example_id": 4063,
+      "domain": "finance",
+      "max_effective_calls": 16
+    },
+    {
+      "task": "finance.prepaid_amortization",
+      "example_id": 4058,
+      "domain": "finance",
+      "max_effective_calls": 15
+    },
+    {
+      "task": "operations.linkedin_abm_outreach",
+      "example_id": 1317,
+      "domain": "operations",
+      "max_effective_calls": 40
+    },
+    {
+      "task": "support.freshdesk_warranty_adjudication",
+      "example_id": 1567,
+      "domain": "support",
+      "max_effective_calls": 32
+    },
+    {
+      "task": "support.gorgias_order_lookup",
+      "example_id": 1405,
+      "domain": "support",
+      "max_effective_calls": 18
+    },
+    {
+      "task": "sales.dependency_chain",
+      "example_id": 517,
+      "domain": "sales",
+      "max_effective_calls": 14
+    },
+    {
+      "task": "marketing.news_digest_dedup",
+      "example_id": 1176,
+      "domain": "marketing",
+      "max_effective_calls": 30
+    },
+    {
+      "task": "operations.sensor_monitoring_alert",
+      "example_id": 1322,
+      "domain": "operations",
+      "max_effective_calls": 11
+    },
+    {
+      "task": "sales.docusign_sequential_signing",
+      "example_id": 837,
+      "domain": "sales",
+      "max_effective_calls": 41
+    },
+    {
+      "task": "sales.format_ambiguity",
+      "example_id": 511,
+      "domain": "sales",
+      "max_effective_calls": 20
+    },
+    {
+      "task": "sales.historical_win_loss_recap",
+      "example_id": 1204,
+      "domain": "sales",
+      "max_effective_calls": 19
+    },
+    {
+      "task": "support.zoho_multitenant_isolation",
+      "example_id": 1541,
+      "domain": "support",
+      "max_effective_calls": 11
+    },
+    {
+      "task": "operations.asana_fire_drill",
+      "example_id": 1201,
+      "domain": "operations",
+      "max_effective_calls": 13
+    },
+    {
+      "task": "hr.benefits_open_enrollment_processing",
+      "example_id": 5085,
+      "domain": "hr",
+      "max_effective_calls": 22
+    },
+    {
+      "task": "hr.notion_meeting_notes",
+      "example_id": 5067,
+      "domain": "hr",
+      "max_effective_calls": 12
+    },
+    {
+      "task": "operations.asana_safety_walk_log",
+      "example_id": 1208,
+      "domain": "operations",
+      "max_effective_calls": 12
+    },
+    {
+      "task": "hr.disciplinary_action_tracking",
+      "example_id": 5058,
+      "domain": "hr",
+      "max_effective_calls": 16
+    },
+    {
+      "task": "sales.soft_matching",
+      "example_id": 515,
+      "domain": "sales",
+      "max_effective_calls": 19
+    },
+    {
+      "task": "operations.twilio_afterhours_incident",
+      "example_id": 1248,
+      "domain": "operations",
+      "max_effective_calls": 19
+    },
+    {
+      "task": "support.freshdesk_contract_renewal",
+      "example_id": 1490,
+      "domain": "support",
+      "max_effective_calls": 16
+    },
+    {
+      "task": "marketing.seo_brief_prioritization",
+      "example_id": 1161,
+      "domain": "marketing",
+      "max_effective_calls": 19
+    }
+  ]
+}
