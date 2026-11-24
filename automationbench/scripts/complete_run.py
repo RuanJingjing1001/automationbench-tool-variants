@@ -137,6 +137,7 @@ async def _rerun(
 ) -> None:
     # Imported lazily to avoid an import cycle (eval imports this module's gate).
     from automationbench.scripts.eval import run_evaluation
+    from automationbench.task_constraints import EXECUTION_REQUIREMENTS_VERSION
     from automationbench.tool_variants import OFFLINE_PROFILE_CONFIG_SHA256, OFFLINE_RELIABILITY
 
     if (
@@ -144,6 +145,11 @@ async def _rerun(
         and meta.get("variant_profile_config_sha256") != OFFLINE_PROFILE_CONFIG_SHA256
     ):
         raise ValueError("offline reliability profile configuration changed since the original run")
+    if (
+        meta.get("task_constraints") is not None
+        and meta.get("execution_requirements_version") != EXECUTION_REQUIREMENTS_VERSION
+    ):
+        raise ValueError("execution requirements changed since the original run")
 
     await run_evaluation(
         model=model or meta["model"],

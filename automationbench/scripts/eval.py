@@ -36,7 +36,11 @@ from automationbench.export import export_partial_results, export_results
 from automationbench.pricing import PricingDatabase
 from automationbench.rubric import create_rubric
 from automationbench.runner import AutomationBenchEnv
-from automationbench.task_constraints import TaskLimits, execution_requirements
+from automationbench.task_constraints import (
+    EXECUTION_REQUIREMENTS_VERSION,
+    TaskLimits,
+    execution_requirements,
+)
 from automationbench.tool_variants import (
     MULTI_OBJECTIVE,
     MULTI_OBJECTIVE_FAULT_MODEL,
@@ -268,10 +272,13 @@ async def run_evaluation(
             info = row["info"]
             if isinstance(info, str):
                 info = json.loads(info)
+            initial_meta = info.get("initial_state", {}).get("meta") or {}
             prompt = [dict(message) for message in row["prompt"]]
             user_message = next(message for message in reversed(prompt) if message["role"] == "user")
             requirements = execution_requirements(
-                info["zapier_tools"], task_constraints[_task_name(dict(row))]
+                info["zapier_tools"],
+                task_constraints[_task_name(dict(row))],
+                simulated_time=initial_meta.get("current_time"),
             )
             user_message["content"] += f"\n\n{requirements}"
             return {"prompt": prompt}
@@ -561,6 +568,7 @@ async def run_evaluation(
         if tool_budget is not None:
             extra_meta["tool_budget"] = tool_budget
         if task_constraints is not None:
+            extra_meta["execution_requirements_version"] = EXECUTION_REQUIREMENTS_VERSION
             extra_meta["task_constraints"] = {
                 task["task"]: task_constraints[task["task"]] for task in outputs
             }

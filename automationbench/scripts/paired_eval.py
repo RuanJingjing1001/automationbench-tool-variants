@@ -20,7 +20,12 @@ from rich.table import Table
 from automationbench.domains import get_combined_dataset
 from automationbench.scripts.complete_run import recompute_aggregates
 from automationbench.scripts.eval import _task_name, run_evaluation
-from automationbench.task_constraints import DEADLINE_CONDITIONS, TaskLimits, load_task_constraints
+from automationbench.task_constraints import (
+    DEADLINE_CONDITIONS,
+    EXECUTION_REQUIREMENTS_VERSION,
+    TaskLimits,
+    load_task_constraints,
+)
 from automationbench.tool_variants import (
     MULTI_OBJECTIVE,
     MULTI_OBJECTIVE_FAULT_MODEL,
@@ -425,6 +430,7 @@ async def run_pair(
             config["profile_config_sha256"] = OFFLINE_PROFILE_CONFIG_SHA256
         if task_constraints is not None:
             config["task_constraints"] = task_constraints
+            config["execution_requirements_version"] = EXECUTION_REQUIREMENTS_VERSION
         args.output_dir.mkdir(parents=True, exist_ok=True)
         with (args.output_dir / ".resume.lock").open("a") as lock:
             try:
@@ -477,6 +483,8 @@ def save_comparison(args, tasks, runs, errors, scenario, max_task_tokens, task_c
         report["variant_fault_model"] = MULTI_OBJECTIVE_FAULT_MODEL
     elif scenario == OFFLINE_RELIABILITY:
         report["variant_profile_config_sha256"] = OFFLINE_PROFILE_CONFIG_SHA256
+    if task_constraints is not None:
+        report["execution_requirements_version"] = EXECUTION_REQUIREMENTS_VERSION
     if max_task_tokens is not None:
         report["max_task_tokens"] = max_task_tokens
     write_json(args.output_dir / "comparison.json", report)

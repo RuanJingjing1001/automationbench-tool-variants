@@ -3,6 +3,7 @@
 """Task-level constraints for the offline reliability experiment."""
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import TypedDict
 
@@ -15,6 +16,7 @@ class TaskLimits(TypedDict):
 
 
 DEADLINE_CONDITIONS = ("tight", "loose")
+EXECUTION_REQUIREMENTS_VERSION = 2
 
 
 def load_task_constraints(path: Path) -> dict[str, dict[str, TaskLimits]]:
@@ -41,9 +43,17 @@ def load_task_constraints(path: Path) -> dict[str, dict[str, TaskLimits]]:
     return data
 
 
-def execution_requirements(actions: list[str], limits: TaskLimits) -> str:
-    lines = [
-        "## Execution requirements",
+def execution_requirements(
+    actions: list[str], limits: TaskLimits, *, simulated_time: str | None = None
+) -> str:
+    lines = ["## Execution requirements"]
+    if simulated_time:
+        simulated_date = datetime.fromisoformat(simulated_time).date()
+        lines.append(
+            f"The simulated date is {simulated_date.isoformat()}. Use this date to interpret "
+            "relative dates and periods such as 'this month'."
+        )
+    lines += [
         "Complete all business requirements correctly.",
         f"Tool budget: {limits['budget_units']} cost units. "
         f"Cumulative simulated tool time limit: {limits['deadline_ms']} ms.",

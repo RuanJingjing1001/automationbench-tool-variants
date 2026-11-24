@@ -176,8 +176,27 @@ async def test_deadline_pair_resumes_from_matching_constraints(monkeypatch, tmp_
             task_constraints=constraints,
         )
 
+    constraints[name]["loose"]["deadline_ms"] -= 100
+    manifest = args.output_dir / "experiment.json"
+    old_experiment = json.loads(manifest.read_text())
+    del old_experiment["config"]["execution_requirements_version"]
+    manifest.write_text(json.dumps(old_experiment))
+    with pytest.raises(
+        ValueError, match="resume configuration changed: execution_requirements_version"
+    ):
+        await paired_eval.run_pair(
+            args,
+            (name,),
+            ["finance"],
+            variant_scenario=OFFLINE_RELIABILITY,
+            task_constraints=constraints,
+        )
 
-async def test_deadline_prompt_appends_limits_and_tool_menu_to_original_user_message(monkeypatch):
+
+@pytest.mark.parametrize("deadline_ms", [14800, 15600])
+async def test_deadline_prompt_appends_simulated_date_limits_and_tool_menu(
+    monkeypatch, deadline_ms
+):
     name = "finance.qb_recurring_journal"
     rows = benchmark_eval.get_combined_dataset(["finance"])
     original = next(row for row in rows if benchmark_eval._task_name(row) == name)
@@ -193,8 +212,10 @@ async def test_deadline_prompt_appends_limits_and_tool_menu_to_original_user_mes
         assert user_message.startswith(
             original["prompt"][1]["content"] + "\n\n## Execution requirements"
         )
+        assert "The simulated date is 2026-02-01." in user_message
+        assert "relative dates and periods such as 'this month'." in user_message
         assert "Tool budget: 27 cost units." in user_message
-        assert "time limit: 14800 ms." in user_message
+        assert f"time limit: {deadline_ms} ms." in user_message
         assert "| `google_sheets_get_many_rows_fast` | 2 | 400 | 2% |" in user_message
         assert sum(line.startswith("| `") for line in user_message.splitlines()) == 24
         raise PromptVerified
@@ -207,7 +228,7 @@ async def test_deadline_prompt_appends_limits_and_tool_menu_to_original_user_mes
             tasks=name,
             toolset="variants",
             variant_scenario=OFFLINE_RELIABILITY,
-            task_constraints={name: {"budget_units": 27, "deadline_ms": 14800}},
+            task_constraints={name: {"budget_units": 27, "deadline_ms": deadline_ms}},
         )
 
 

@@ -76,14 +76,16 @@ uv run python -m automationbench.scripts.paired_eval \
   --model deepseek-flash --api chat_completions --base-url https://api.deepseek.com \
   --task-constraints benchmarks/quickbooks-task-constraints.json --max-steps 64 \
   --arm-timeout 3600 --max-concurrent 1 --resume \
-  --output-dir visualizer/runs/local/quickbooks-deadline-pair
+  --output-dir visualizer/runs/local/quickbooks-deadline-pair-dated
 ```
 
 两组都在原用户题面末尾追加执行要求，列出各题可用工具的价格、模拟耗时和故障率，
 要求模型在预算和时限内完整完成业务并尽量提高轨迹可靠度。超限在评测后判定。
+如果任务配置了模拟时钟，执行要求会注明模拟日期，用于解释「本月」等相对时间。
 `comparison.json` 保留每组业务得分和工具指标，给出 `within_budget`、`within_time_limit`
 及 `passed_within_constraints`。同一道题在两组均满分且达标时，才计算费用、耗时和可靠度的差值。
-`--resume` 复用相同配置下已完成的任务，续跑时核对工具属性和逐题约束。
+`--resume` 复用相同配置下已完成的任务，续跑时核对工具属性、逐题约束和题面版本。
+首次使用带模拟日期的题面时，请使用新的输出目录。
 
 ### 成本、延迟与稳定性
 
