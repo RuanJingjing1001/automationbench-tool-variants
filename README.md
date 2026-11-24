@@ -18,6 +18,7 @@ Learn more at [zapier.com/benchmarks](https://zapier.com/benchmarks) or run it o
 | `stability` | `economy` / `reliable` | 两版均 300 ms，费用分别为 1 和 3 单位，执行前超时概率分别为 10% 和 1%。 |
 | `quality` | `economy` / `standard` | 两版均 300 ms，费用分别为 1 和 3 单位。仅 `google_sheets_find_many_rows` 的省钱版每次最多返回 5 行，标准版使用原有参数和返回上限。使用数据超过 5 行且实际需要这些行的题检验质量差异。 |
 | `multi-objective` | 所有业务动作提供 `economy` / `fast` / `reliable` | 同时评估成本、模拟延迟、调用失败和任务得分。 |
+| `offline-reliability` | 所有业务动作提供 `economy` / `fast` / `reliable` | 正常执行业务工具，按公开的工具属性计算成本、模拟延迟和轨迹可靠度。 |
 
 使用已配置凭据的模型运行同一任务两次。以下以 OpenAI 接口为例，需设置 `OPENAI_API_KEY`。
 
@@ -33,6 +34,56 @@ done
 在导出的 `tasks[].tool_variants` 里，查看 `attempts[].tool` 比较实际选择，再对照 `total_cost_units`、`total_simulated_latency_ms`、`injected_timeouts` 和任务得分。工具费用按尝试累计，包括模拟超时和重试。模拟延迟是当前串行执行顺序下的累加值。实测工具耗时和模型费用使用原导出字段。稳定性场景可重复同一组 `--variant-seed` 比较策略，超时在业务函数执行前返回。
 
 统一配置位于 [tool_variants.py](automationbench/tool_variants.py)。可用 `uv run pytest -q tests/test_tool_variants.py` 做离线回放验证。
+
+### 离线轨迹可靠度
+
+在 [offline_profiles.json](automationbench/offline_profiles.json) 编辑基础属性。`default` 是默认值，
+`actions` 可按原始动作名覆盖任意字段。基础价格默认为 1u，目前的动作覆盖项只调整延迟和故障率。
+价格用整数成本单位，基础延迟用 3 的正整数倍毫秒，故障率用 0 到 1 之间的小数，不含 1。
+
+| 版本 | 价格 | 模拟延迟 | 单次故障率属性 |
+| --- | ---: | ---: | ---: |
+| `economy` | c | L | p |
+| `fast` | 2c | L/3 | p |
+| `reliable` | 2c | L | p/10 |
+
+三个版本都调用同一个业务实现。故障率是公开的模拟参数，只用于评分，没有故障注入或自动重试。
+原业务评分器仍给出业务得分。费用和模拟延迟累计所有工具尝试，包括原生业务错误。
+轨迹可靠度是独立故障假设下各计入调用的 (1 − p) 乘积。正常返回的业务调用都计入，包括重复调用和正常的空搜索结果。原生错误和异常不计入乘积。
+
+`tasks[].tool_variants.trace_reliability` 给出可靠度，`reliability_call_count` 给出计入次数，
+`attempts[]` 保留各次调用的 `failure_probability` 和 `included_in_reliability`。零次计入时乘积为 1，
+仍须结合业务得分解读。配对报告对同题均完成且满足指定费用上限的结果计算工具指标差值。
+`--budget` 会在提示词中设置费用上限并在报告中核对实际费用。续跑会检查配置摘要，避免混用不同属性表。
+
+```sh
+uv run python -m automationbench.scripts.paired_eval \
+  --model deepseek-flash --api chat_completions --base-url https://api.deepseek.com \
+  --variant-scenario offline-reliability --pilot25 --limit 2 --include-native \
+  --output-dir visualizer/runs/local/pilot25-offline-reliability
+```
+
+#### 同预算、不同模拟时限
+
+[quickbooks-task-constraints.json](benchmarks/quickbooks-task-constraints.json) 为 QuickBooks 周期性分录设置
+27u 预算和 14,800ms、15,600ms 两个时限。这两个时限来自同一条满分参考轨迹上的离线验证。
+扩展到其他题时，按题 ID 增加 `tight` 和 `loose`，填入 `budget_units` 与 `deadline_ms`。
+每道题的两个条件必须使用同一预算。`--task-constraints` 默认运行配置里的题，也可用
+`--tasks` 从中选择。
+
+```sh
+uv run python -m automationbench.scripts.paired_eval \
+  --model deepseek-flash --api chat_completions --base-url https://api.deepseek.com \
+  --task-constraints benchmarks/quickbooks-task-constraints.json --max-steps 64 \
+  --arm-timeout 3600 --max-concurrent 1 --resume \
+  --output-dir visualizer/runs/local/quickbooks-deadline-pair
+```
+
+两组都在原用户题面末尾追加执行要求，列出各题可用工具的价格、模拟耗时和故障率，
+要求模型在预算和时限内完整完成业务并尽量提高轨迹可靠度。超限在评测后判定。
+`comparison.json` 保留每组业务得分和工具指标，给出 `within_budget`、`within_time_limit`
+及 `passed_within_constraints`。同一道题在两组均满分且达标时，才计算费用、耗时和可靠度的差值。
+`--resume` 复用相同配置下已完成的任务，续跑时核对工具属性和逐题约束。
 
 ### 成本、延迟与稳定性
 

@@ -1,0 +1,13 @@
+{
+  "default": {"cost_units": 1, "latency_ms": 600, "failure_probability": 0.02},
+  "actions": {
+    "gmail_find_email": {"latency_ms": 900},
+    "gmail_send_email": {"latency_ms": 300, "failure_probability": 0.10},
+    "google_sheets_append_row": {"latency_ms": 300, "failure_probability": 0.10},
+    "google_sheets_find_many_rows": {"latency_ms": 1200},
+    "google_sheets_get_many_rows": {"latency_ms": 1200},
+    "google_sheets_update_row": {"latency_ms": 300, "failure_probability": 0.10},
+    "salesforce_contact_update": {"latency_ms": 300, "failure_probability": 0.10},
+    "salesforce_find_records": {"latency_ms": 900}
+  }
+}

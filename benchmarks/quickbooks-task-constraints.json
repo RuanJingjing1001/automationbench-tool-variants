@@ -1,0 +1,6 @@
+{
+  "finance.qb_recurring_journal": {
+    "tight": {"budget_units": 27, "deadline_ms": 14800},
+    "loose": {"budget_units": 27, "deadline_ms": 15600}
+  }
+}

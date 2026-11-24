@@ -7,9 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from automationbench.scripts import paired_eval
+from automationbench.scripts import eval as benchmark_eval, paired_eval
 from automationbench.scripts.paired_eval import compare_runs, load_pilot50
-from automationbench.tool_variants import MULTI_OBJECTIVE, variants_for
+from automationbench.task_constraints import load_task_constraints
+from automationbench.tool_variants import MULTI_OBJECTIVE, OFFLINE_RELIABILITY, variants_for
 
 
 def make_task(name, passed, cost, latency, tools):
@@ -50,6 +51,164 @@ def test_pair_preserves_failure_and_separates_actions_from_tool_switches():
         "strict_pass_count": 0,
         "strict_pass_rate": 0.0,
     }
+
+
+def test_offline_reliability_comparison_requires_both_traces_to_qualify():
+    cost = make_task("t", True, 1, 600, [("find", "find_economy")])
+    speed = make_task("t", False, 2, 200, [("find", "find_fast")])
+    stability = make_task("t", True, 2, 600, [("find", "find_reliable")])
+    for task, reliability in ((cost, 0.9), (speed, 0.9), (stability, 0.99)):
+        task["tool_variants"].update(trace_reliability=reliability, reliability_call_count=1)
+    runs = {
+        arm: {"tasks": [task]}
+        for arm, task in (("cost", cost), ("speed", speed), ("stability", stability))
+    }
+    report = compare_runs(("t",), runs, budget=2)
+    pair = report["tasks"][0]
+    assert pair["speed"]["trace_reliability"] == 0.9
+    assert "latency_saved_ms" not in pair
+    assert set(pair["tool_metric_deltas"]) == {"stability_minus_cost"}
+    assert pair["tool_metric_deltas"]["stability_minus_cost"]["trace_reliability"] == pytest.approx(
+        0.09
+    )
+    assert report["summary"]["by_arm"]["speed"]["avg_trace_reliability"] is None
+    assert report["summary"]["by_arm"]["stability"]["avg_trace_reliability"] == 0.99
+
+    report = compare_runs(("t",), runs, budget=1)
+    assert report["tasks"][0]["tool_metric_deltas"] == {}
+    assert report["summary"]["by_arm"]["stability"]["reliability_scored_tasks"] == 0
+
+
+@pytest.mark.parametrize(
+    ("score", "cost", "latency", "expected"),
+    [
+        (1.0, 27, 14800, True),
+        (1.0, 28, 14800, False),
+        (1.0, 27, 14801, False),
+        (0.5, 26, 14799, False),
+    ],
+)
+def test_deadline_comparison_keeps_business_score_and_requires_both_limits(
+    score,
+    cost,
+    latency,
+    expected,
+):
+    name = "finance.qb_recurring_journal"
+    constraints = load_task_constraints(
+        paired_eval.PILOT25_PATH.with_name("quickbooks-task-constraints.json")
+    )
+    tight = make_task(name, score == 1.0, cost, latency, [("read", "read_fast")])
+    tight["score"] = score
+    loose = make_task(name, True, 27, 15600, [("read", "read_reliable")])
+    for task, reliability in ((tight, 0.9), (loose, 0.99)):
+        task["tool_variants"].update(trace_reliability=reliability, reliability_call_count=1)
+    report = compare_runs(
+        (name,),
+        {"tight": {"tasks": [tight]}, "loose": {"tasks": [loose]}},
+        None,
+        task_constraints=constraints,
+    )
+    pair = report["tasks"][0]
+    assert pair["tight"]["score"] == score
+    assert pair["tight"]["trace_reliability"] == 0.9
+    assert pair["tight"]["within_budget"] == (cost <= 27)
+    assert pair["tight"]["within_time_limit"] == (latency <= 14800)
+    assert pair["tight"]["passed_within_constraints"] is expected
+    assert pair["loose"]["passed_within_constraints"] is True
+    assert report["summary"]["both_passed_within_constraints"] == int(expected)
+    if expected:
+        assert pair["tool_metric_deltas"]["loose_minus_tight"][
+            "trace_reliability"
+        ] == pytest.approx(0.09)
+    else:
+        assert "tool_metric_deltas" not in pair
+        assert report["summary"]["by_arm"]["tight"]["avg_trace_reliability"] is None
+
+
+async def test_deadline_pair_resumes_from_matching_constraints(monkeypatch, tmp_path):
+    name = "finance.qb_recurring_journal"
+    constraints = load_task_constraints(
+        paired_eval.PILOT25_PATH.with_name("quickbooks-task-constraints.json")
+    )
+    args = SimpleNamespace(
+        output_dir=tmp_path / "deadlines",
+        budget=None,
+        model="test-model",
+        base_url=None,
+        api="chat_completions",
+        variant_seed=0,
+        max_steps=64,
+        max_concurrent=1,
+        arm_timeout=10,
+        resume=True,
+    )
+    calls = []
+
+    async def evaluate(**kwargs):
+        calls.append(kwargs)
+        limits = kwargs["task_constraints"][name]
+        task = make_task(name, True, 27, limits["deadline_ms"], [("read", "read_reliable")])
+        task["tool_variants"].update(trace_reliability=0.99, reliability_call_count=1)
+        Path(kwargs["export_json"]).write_text(json.dumps({"tasks": [task]}))
+
+    monkeypatch.setattr(paired_eval, "run_evaluation", evaluate)
+    for _ in range(2):
+        report = await paired_eval.run_pair(
+            args,
+            (name,),
+            ["finance"],
+            variant_scenario=OFFLINE_RELIABILITY,
+            task_constraints=constraints,
+        )
+        assert report["summary"]["both_passed_within_constraints"] == 1
+    assert [call["task_constraints"][name]["deadline_ms"] for call in calls] == [14800, 15600]
+    assert all(
+        call["tool_preference"] == "neutral" and call["tool_budget"] is None for call in calls
+    )
+    constraints[name]["loose"]["deadline_ms"] += 100
+    with pytest.raises(ValueError, match="resume configuration changed: task_constraints"):
+        await paired_eval.run_pair(
+            args,
+            (name,),
+            ["finance"],
+            variant_scenario=OFFLINE_RELIABILITY,
+            task_constraints=constraints,
+        )
+
+
+async def test_deadline_prompt_appends_limits_and_tool_menu_to_original_user_message(monkeypatch):
+    name = "finance.qb_recurring_journal"
+    rows = benchmark_eval.get_combined_dataset(["finance"])
+    original = next(row for row in rows if benchmark_eval._task_name(row) == name)
+
+    class PromptVerified(Exception):
+        pass
+
+    def inspect_dataset(*, dataset, **_):
+        (prepared,) = dataset
+        assert prepared["info"] == original["info"]
+        assert prepared["prompt"][0] == original["prompt"][0]
+        user_message = prepared["prompt"][1]["content"]
+        assert user_message.startswith(
+            original["prompt"][1]["content"] + "\n\n## Execution requirements"
+        )
+        assert "Tool budget: 27 cost units." in user_message
+        assert "time limit: 14800 ms." in user_message
+        assert "| `google_sheets_get_many_rows_fast` | 2 | 400 | 2% |" in user_message
+        assert sum(line.startswith("| `") for line in user_message.splitlines()) == 24
+        raise PromptVerified
+
+    monkeypatch.setattr(benchmark_eval, "AutomationBenchEnv", inspect_dataset)
+    with pytest.raises(PromptVerified):
+        await benchmark_eval.run_evaluation(
+            model="test-model",
+            domains=["finance"],
+            tasks=name,
+            toolset="variants",
+            variant_scenario=OFFLINE_RELIABILITY,
+            task_constraints={name: {"budget_units": 27, "deadline_ms": 14800}},
+        )
 
 
 def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, tmp_path):

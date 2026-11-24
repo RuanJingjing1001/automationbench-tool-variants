@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-"""Compare native, cost-priority and latency-priority tool runs."""
+"""Compare tool preferences or task-specific execution constraints."""
 
 import argparse
 import asyncio
@@ -20,12 +20,15 @@ from rich.table import Table
 from automationbench.domains import get_combined_dataset
 from automationbench.scripts.complete_run import recompute_aggregates
 from automationbench.scripts.eval import _task_name, run_evaluation
+from automationbench.task_constraints import DEADLINE_CONDITIONS, TaskLimits, load_task_constraints
 from automationbench.tool_variants import (
     MULTI_OBJECTIVE,
     MULTI_OBJECTIVE_FAULT_MODEL,
     MULTI_OBJECTIVE_PROFILE_SCOPE,
-    PREFERENCES as EXECUTION_PREFERENCES,
+    OFFLINE_PROFILE_CONFIG_SHA256,
+    OFFLINE_RELIABILITY,
     SCENARIOS,
+    preference_for,
 )
 
 PILOT_TASKS = (
@@ -85,7 +88,12 @@ def arm_summary(
             attempts=attempts,
             variant_attempt_counts=dict(versions),
         )
-        if "injected_failures" in report:
+        if "trace_reliability" in report:
+            result.update(
+                trace_reliability=report["trace_reliability"],
+                reliability_call_count=report["reliability_call_count"],
+            )
+        elif "injected_failures" in report:
             failures = report["injected_failures"]
             result.update(
                 injected_failures=failures,
@@ -110,9 +118,17 @@ def native_full_score_tasks(run: dict) -> set[str]:
 
 
 def compare_runs(
-    tasks: tuple[str, ...], runs: dict, budget: int | None, *, native_pass_only: bool = False
+    tasks: tuple[str, ...],
+    runs: dict,
+    budget: int | None,
+    *,
+    native_pass_only: bool = False,
+    task_constraints: dict[str, dict[str, TaskLimits]] | None = None,
 ) -> dict:
-    arms = ("native", *PREFERENCES) if "native" in runs else PREFERENCES
+    left_arm, right_arm = DEADLINE_CONDITIONS if task_constraints is not None else PREFERENCES
+    arms = (left_arm, right_arm)
+    if "native" in runs:
+        arms = ("native", *arms)
     if "stability" in runs:
         arms = (*arms, "stability")
     eligible = native_full_score_tasks(runs.get("native", {})) if native_pass_only else set(tasks)
@@ -126,23 +142,63 @@ def compare_runs(
     for name in tasks:
         pair = {"task": name}
         for arm in arms:
+            limits = (
+                task_constraints[name][arm]
+                if task_constraints is not None and arm != "native"
+                else None
+            )
             if arm != "native" and name not in eligible:
                 pair[arm] = {"status": "skipped_native_gate"}
-                continue
-            pair[arm] = arm_summary(
-                by_arm[arm].get(name), name in aborted_by_arm[arm], budget, native=arm == "native"
-            )
+            else:
+                pair[arm] = arm_summary(
+                    by_arm[arm].get(name),
+                    name in aborted_by_arm[arm],
+                    limits["budget_units"] if limits is not None else budget,
+                    native=arm == "native",
+                )
+            if limits is not None:
+                result = pair[arm]
+                latency = result.get("simulated_latency_ms")
+                result.update(
+                    **limits,
+                    within_time_limit=None if latency is None else latency <= limits["deadline_ms"],
+                )
+                result["passed_within_constraints"] = (
+                    result["status"] == "passed"
+                    and result["score"] == 1.0
+                    and result.get("within_budget") is True
+                    and result["within_time_limit"] is True
+                )
         scores = {arm: pair[arm].get("score") for arm in arms}
         pair["score_deltas"] = {
             f"{right}_minus_{left}": scores[right] - scores[left]
             for left, right in combinations(arms, 2)
             if scores[left] is not None and scores[right] is not None
         }
+        if task_constraints is not None:
+            tight, loose = pair[left_arm], pair[right_arm]
+            if all(
+                result["passed_within_constraints"] and "trace_reliability" in result
+                for result in (tight, loose)
+            ):
+                pair["tool_metric_deltas"] = {
+                    "loose_minus_tight": {
+                        key: loose[key] - tight[key]
+                        for key in ("cost_units", "simulated_latency_ms", "trace_reliability")
+                    }
+                }
+            pairs.append(pair)
+            continue
         if "stability" in arms:
             comparable = [
                 arm
                 for arm in arms
-                if "cost_units" in pair[arm] and pair[arm]["status"] in ("passed", "failed")
+                if "cost_units" in pair[arm]
+                and pair[arm]["status"] in ("passed", "failed")
+                and (
+                    "trace_reliability" not in pair[arm]
+                    or (pair[arm]["status"] == "passed" and pair[arm]["within_budget"] is not False)
+                )
             ]
             pair["tool_metric_deltas"] = {
                 f"{right}_minus_{left}": {
@@ -152,6 +208,7 @@ def compare_runs(
                         "simulated_latency_ms",
                         "injected_failures",
                         "injected_timeouts",
+                        "trace_reliability",
                     )
                     if key in pair[left] and key in pair[right]
                 }
@@ -162,6 +219,11 @@ def compare_runs(
             "attempts" in cost
             and "attempts" in speed
             and all(pair[arm]["status"] != "token_budget_exceeded" for arm in PREFERENCES)
+            and all(
+                "trace_reliability" not in result
+                or (result["status"] == "passed" and result["within_budget"] is not False)
+                for result in (cost, speed)
+            )
         ):
             tools_by_action = []
             for result in (cost, speed):
@@ -195,7 +257,7 @@ def compare_runs(
             "strict_pass_count": passed,
             "strict_pass_rate": passed / scored if scored else None,
         }
-        if "stability" in arms:
+        if task_constraints is not None or "stability" in arms:
             tool_results = [pair[arm] for pair in pairs if "cost_units" in pair[arm]]
             if tool_results:
                 by_arm_metrics[arm].update(
@@ -219,15 +281,37 @@ def compare_runs(
                         tool_attempt_count=attempts,
                         injected_failure_rate=failures / attempts if attempts else None,
                     )
+                if any("trace_reliability" in result for result in tool_results):
+                    completed = [
+                        result
+                        for result in tool_results
+                        if "trace_reliability" in result
+                        and result["status"] == "passed"
+                        and result.get(
+                            "passed_within_constraints", result["within_budget"] is not False
+                        )
+                    ]
+                    by_arm_metrics[arm].update(
+                        reliability_scored_tasks=len(completed),
+                        avg_trace_reliability=(
+                            sum(result["trace_reliability"] for result in completed)
+                            / len(completed)
+                            if completed
+                            else None
+                        ),
+                    )
+        if task_constraints is not None and arm != "native":
+            by_arm_metrics[arm]["passed_within_constraints"] = sum(
+                pair[arm]["passed_within_constraints"] for pair in pairs
+            )
     report = {
         "tasks": pairs,
         "summary": {
             "pairs": len(pairs),
             "by_arm": by_arm_metrics,
             "both_passed": sum(
-                pair["cost"]["status"] == pair["speed"]["status"] == "passed" for pair in pairs
+                pair[left_arm]["status"] == pair[right_arm]["status"] == "passed" for pair in pairs
             ),
-            "with_tool_switch": sum(bool(pair.get("tool_switches")) for pair in pairs),
             "with_incomplete_arm": sum(
                 any(pair[arm]["status"] in ("missing", "incomplete") for arm in arms)
                 for pair in pairs
@@ -240,6 +324,16 @@ def compare_runs(
     }
     if native_pass_only:
         report["summary"]["native_eligible_tasks"] = [name for name in tasks if name in eligible]
+    if task_constraints is not None:
+        report["summary"]["both_passed_within_constraints"] = sum(
+            pair[left_arm]["passed_within_constraints"]
+            and pair[right_arm]["passed_within_constraints"]
+            for pair in pairs
+        )
+    else:
+        report["summary"]["with_tool_switch"] = sum(
+            bool(pair.get("tool_switches")) for pair in pairs
+        )
     return report
 
 
@@ -251,17 +345,29 @@ async def run_pair(
     include_native: bool = False,
     max_task_tokens: int | None = None,
     variant_scenario: str | None = None,
+    task_constraints: dict[str, dict[str, TaskLimits]] | None = None,
 ) -> dict:
     resume = getattr(args, "resume", False)
     native_pass_only = getattr(args, "native_pass_only", False)
     include_native = include_native or native_pass_only
     scenario = variant_scenario or ("budget-speed" if args.budget is not None else "cost-speed")
     arms = ("native", *PREFERENCES) if include_native else PREFERENCES
-    if scenario == MULTI_OBJECTIVE:
+    if scenario in (MULTI_OBJECTIVE, OFFLINE_RELIABILITY):
         arms = (*arms, "stability")
+    if task_constraints is not None:
+        if scenario != OFFLINE_RELIABILITY or args.budget is not None:
+            raise ValueError("task constraints require offline-reliability and their own budget")
+        if missing := set(tasks) - task_constraints.keys():
+            raise ValueError(f"missing constraints for {', '.join(sorted(missing))}")
+        arms = ("native", *DEADLINE_CONDITIONS) if include_native else DEADLINE_CONDITIONS
 
     async def evaluate(arm, requested, run_domains, path, concurrency):
         native = arm == "native"
+        limits = (
+            {name: task_constraints[name][arm] for name in requested}
+            if task_constraints is not None and not native
+            else None
+        )
         await run_evaluation(
             model=args.model,
             domains=run_domains,
@@ -271,12 +377,13 @@ async def run_pair(
             toolset="limited_zapier" if native else "variants",
             variant_scenario=scenario,
             variant_seed=args.variant_seed,
-            tool_preference="neutral" if native else arm,
+            tool_preference="neutral" if native or limits is not None else arm,
             tool_budget=None if native else args.budget,
             max_turns=args.max_steps,
             max_concurrent=concurrency,
             max_task_tokens=max_task_tokens,
             export_json=str(path),
+            **({"task_constraints": limits} if limits is not None else {}),
         )
         return json.loads(path.read_text())
 
@@ -291,14 +398,19 @@ async def run_pair(
             "scenario": scenario,
             "profiles": [
                 asdict(profile)
-                if scenario == MULTI_OBJECTIVE
+                if scenario in (MULTI_OBJECTIVE, OFFLINE_RELIABILITY)
                 else {
                     **{k: v for k, v in asdict(profile).items() if k != "failure_probability"},
                     "timeout_ms": None,
                 }
                 for profile in SCENARIOS[scenario]
             ],
-            "preferences": {arm: EXECUTION_PREFERENCES.get(arm, "") for arm in arms},
+            "preferences": {
+                arm: preference_for(
+                    "neutral" if arm == "native" or task_constraints is not None else arm, scenario
+                )
+                for arm in arms
+            },
             "variant_seed": args.variant_seed,
             "profile_scope": MULTI_OBJECTIVE_PROFILE_SCOPE if scenario == MULTI_OBJECTIVE else None,
             "budget": args.budget,
@@ -309,6 +421,10 @@ async def run_pair(
             config["native_pass_only"] = True
         if scenario == MULTI_OBJECTIVE:
             config["fault_model"] = MULTI_OBJECTIVE_FAULT_MODEL
+        elif scenario == OFFLINE_RELIABILITY:
+            config["profile_config_sha256"] = OFFLINE_PROFILE_CONFIG_SHA256
+        if task_constraints is not None:
+            config["task_constraints"] = task_constraints
         args.output_dir.mkdir(parents=True, exist_ok=True)
         with (args.output_dir / ".resume.lock").open("a") as lock:
             try:
@@ -316,7 +432,9 @@ async def run_pair(
             except BlockingIOError as exc:
                 raise ValueError("another process is already running this experiment") from exc
             tasks, runs, errors = await run_resumable(args, tasks, arms, config, evaluate)
-            return save_comparison(args, tasks, runs, errors, scenario, max_task_tokens)
+            return save_comparison(
+                args, tasks, runs, errors, scenario, max_task_tokens, task_constraints
+            )
     else:
         args.output_dir.mkdir(parents=True, exist_ok=False)
         runs, errors = {}, {}
@@ -341,18 +459,24 @@ async def run_pair(
                 runs[arm] = {}
                 print(f"{arm} evaluation did not finish ({errors[arm]})", flush=True)
 
-    return save_comparison(args, tasks, runs, errors, scenario, max_task_tokens)
+    return save_comparison(args, tasks, runs, errors, scenario, max_task_tokens, task_constraints)
 
 
-def save_comparison(args, tasks, runs, errors, scenario, max_task_tokens):
+def save_comparison(args, tasks, runs, errors, scenario, max_task_tokens, task_constraints):
     report = compare_runs(
-        tasks, runs, args.budget, native_pass_only=getattr(args, "native_pass_only", False)
+        tasks,
+        runs,
+        args.budget,
+        native_pass_only=getattr(args, "native_pass_only", False),
+        task_constraints=task_constraints,
     )
     report.update(model=args.model, scenario=scenario, budget=args.budget, run_errors=errors)
     if scenario == MULTI_OBJECTIVE:
         report["variant_seed"] = args.variant_seed
         report["variant_profile_scope"] = MULTI_OBJECTIVE_PROFILE_SCOPE
         report["variant_fault_model"] = MULTI_OBJECTIVE_FAULT_MODEL
+    elif scenario == OFFLINE_RELIABILITY:
+        report["variant_profile_config_sha256"] = OFFLINE_PROFILE_CONFIG_SHA256
     if max_task_tokens is not None:
         report["max_task_tokens"] = max_task_tokens
     write_json(args.output_dir / "comparison.json", report)
@@ -450,6 +574,10 @@ async def run_resumable(args, requested, arms, config, evaluate):
         exports = [records[name] for name in arm_tasks if name in records]
         rows = [dict(result["tasks"][0], id=index) for index, result in enumerate(exports, 1)]
         meta = dict(exports[0].get("meta", {})) if exports else {}
+        if "task_constraints" in config and arm != "native":
+            meta["task_constraints"] = {
+                task["name"]: config["task_constraints"][task["name"]][arm] for task in rows
+            }
         meta.update(
             domains=list(dict.fromkeys(task["name"].split(".", 1)[0] for task in rows)),
             total_tasks=len(rows),
@@ -485,6 +613,8 @@ def print_report(report: dict) -> None:
         "Arm", "Scored / scheduled", "Avg. task score", "Strict pass rate", "Token cap hits"
     )
     multi_objective = report.get("scenario") == MULTI_OBJECTIVE
+    offline = report.get("scenario") == OFFLINE_RELIABILITY
+    constrained = "both_passed_within_constraints" in summary
     failure_model = report.get("variant_fault_model") == MULTI_OBJECTIVE_FAULT_MODEL
     eligible = summary.get("native_eligible_tasks")
     if eligible is not None:
@@ -495,6 +625,11 @@ def print_report(report: dict) -> None:
         faults_heading = "Failures / attempts" if failure_model else "Timeouts"
         for heading in ("Total cost", "Total ms", faults_heading, "Recoveries"):
             metrics_table.add_column(heading, justify="right")
+    elif offline:
+        for heading in ("Total cost", "Total ms", "Mean trace reliability (eligible)"):
+            metrics_table.add_column(heading, justify="right")
+    if constrained:
+        metrics_table.add_column("Full score within limits", justify="right")
     for arm, metrics in summary["by_arm"].items():
         avg_score = metrics["avg_score"]
         pass_rate = metrics["strict_pass_rate"]
@@ -516,6 +651,20 @@ def print_report(report: dict) -> None:
                     str(metrics.get(key, "–"))
                     for key in ("injected_timeouts", "recovered_timeouts")
                 )
+        elif offline:
+            reliability = metrics.get("avg_trace_reliability")
+            tool_columns = [
+                str(metrics.get("total_cost_units", "–")),
+                str(metrics.get("total_simulated_latency_ms", "–")),
+                f"{reliability:.2%} (n={metrics['reliability_scored_tasks']})"
+                if reliability is not None
+                else "–",
+            ]
+        if constrained:
+            within_limits = metrics.get("passed_within_constraints")
+            tool_columns.append(
+                f"{within_limits}/{scheduled}" if within_limits is not None else "–"
+            )
         metrics_table.add_row(
             arm.title(),
             f"{metrics['scored_tasks']}/{scheduled}",
@@ -529,12 +678,20 @@ def print_report(report: dict) -> None:
     console.print(metrics_table)
 
     table = Table(
-        caption="Score Δ = speed − cost in percentage points.",
+        caption=(
+            f"Both conditions met on {summary['both_passed_within_constraints']} tasks. "
+            "Reliability Δ = loose − tight in percentage points."
+            if constrained
+            else "Score Δ = speed − cost in percentage points."
+        )
     )
     table.add_column("Task", overflow="fold", ratio=2)
     for arm in summary["by_arm"]:
         table.add_column(arm.title(), ratio=1)
-    for heading in ("Score Δ", "Cost saved", "ms saved", "Switches"):
+    headings = (
+        ("Reliability Δ",) if constrained else ("Score Δ", "Cost saved", "ms saved", "Switches")
+    )
+    for heading in headings:
         table.add_column(heading, justify="right")
     for pair in report["tasks"]:
         arms = []
@@ -549,13 +706,27 @@ def print_report(report: dict) -> None:
                 label += "\n" + ("token cap" if status == "token_budget_exceeded" else status)
             if "cost_units" in result:
                 label += f"\n{result['cost_units']}u/{result['simulated_latency_ms']}ms"
+            if "trace_reliability" in result:
+                label += f"\nR={result['trace_reliability']:.2%}"
             if "recovered_failures" in result:
                 label += f"\n{result['injected_failures']}/{result['tool_attempt_count']} failed, {result['recovered_failures']} recovered"
             elif "recovered_timeouts" in result:
                 label += f"\n{result['injected_timeouts']} timeouts/{result['recovered_timeouts']} recovered"
             if result.get("within_budget") is False:
                 label += "\nover budget"
+            if "deadline_ms" in result:
+                label += f"\nLimits: {result['budget_units']}u / {result['deadline_ms']}ms"
+                if result["within_time_limit"] is False:
+                    label += "\nover time limit"
             arms.append(label)
+        if constrained:
+            delta = (
+                pair.get("tool_metric_deltas", {})
+                .get("loose_minus_tight", {})
+                .get("trace_reliability")
+            )
+            table.add_row(pair["task"], *arms, f"{delta * 100:+.2f}" if delta is not None else "–")
+            continue
         delta = pair["score_deltas"].get("speed_minus_cost")
         table.add_row(
             pair["task"],
@@ -625,13 +796,28 @@ def main() -> None:
     parser.add_argument("--variant-seed", type=int, default=0)
     parser.add_argument(
         "--variant-scenario",
-        choices=("cost-speed", "budget-speed", MULTI_OBJECTIVE),
-        help="Use multi-objective for cost, speed and stability preference arms",
+        choices=("cost-speed", "budget-speed", MULTI_OBJECTIVE, OFFLINE_RELIABILITY),
+        help="Use multi-objective or offline-reliability for cost, speed and stability arms",
     )
-    parser.add_argument(
+    constraints_group = parser.add_mutually_exclusive_group()
+    constraints_group.add_argument(
         "--budget", type=int, help="Tool cost ceiling stated in the variant prompts"
     )
+    constraints_group.add_argument(
+        "--task-constraints",
+        type=Path,
+        help="JSON file with each task's tight and loose limits for offline reliability",
+    )
     args = parser.parse_args()
+    task_constraints = None
+    if args.task_constraints is not None:
+        if args.variant_scenario not in (None, OFFLINE_RELIABILITY):
+            parser.error("--task-constraints requires offline-reliability")
+        args.variant_scenario = OFFLINE_RELIABILITY
+        try:
+            task_constraints = load_task_constraints(args.task_constraints)
+        except (OSError, ValueError) as exc:
+            parser.error(f"cannot load task constraints: {exc}")
     pilot = args.pilot50 or args.pilot25
     if args.limit is not None and not pilot:
         parser.error("--limit requires --pilot50 or --pilot25")
@@ -662,6 +848,8 @@ def main() -> None:
             parser.error(f"cannot load pilot tasks: {exc}")
     elif args.tasks is not None:
         tasks = tuple(dict.fromkeys(name.strip() for name in args.tasks.split(",") if name.strip()))
+    elif task_constraints is not None:
+        tasks = tuple(task_constraints)
     else:
         tasks = PILOT_TASKS
     if not tasks:
@@ -679,9 +867,11 @@ def main() -> None:
                 args,
                 tasks,
                 domains,
-                include_native=args.include_native or args.variant_scenario != MULTI_OBJECTIVE,
+                include_native=args.include_native
+                or args.variant_scenario not in (MULTI_OBJECTIVE, OFFLINE_RELIABILITY),
                 max_task_tokens=args.max_task_tokens,
                 variant_scenario=args.variant_scenario,
+                task_constraints=task_constraints,
             )
         )
     except (OSError, ValueError, KeyError) as exc:

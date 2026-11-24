@@ -36,12 +36,16 @@ from automationbench.export import export_partial_results, export_results
 from automationbench.pricing import PricingDatabase
 from automationbench.rubric import create_rubric
 from automationbench.runner import AutomationBenchEnv
+from automationbench.task_constraints import TaskLimits, execution_requirements
 from automationbench.tool_variants import (
     MULTI_OBJECTIVE,
     MULTI_OBJECTIVE_FAULT_MODEL,
     MULTI_OBJECTIVE_PROFILE_SCOPE,
+    OFFLINE_PROFILE_CONFIG_SHA256,
+    OFFLINE_RELIABILITY,
     PREFERENCES,
     SCENARIOS,
+    preference_for,
 )
 from automationbench.usage import calculate_run_usage, print_usage_report
 
@@ -227,6 +231,7 @@ async def run_evaluation(
     tool_preference: str = "neutral",
     tool_budget: int | None = None,
     max_task_tokens: int | None = None,
+    task_constraints: dict[str, TaskLimits] | None = None,
 ) -> None:
     """Run AutomationBench evaluation."""
     if max_task_tokens is not None and max_task_tokens < 1:
@@ -250,7 +255,30 @@ async def run_evaluation(
         dataset = dataset.select(indices)
         console.print(f"[key]Filtering to {len(indices)} tasks: {task_names}[/key]")
 
-    preference = PREFERENCES[tool_preference]
+    if task_constraints is not None:
+        if toolset != "variants" or variant_scenario != OFFLINE_RELIABILITY:
+            raise ValueError("task constraints require offline-reliability tool variants")
+        if tool_budget is not None or tool_preference != "neutral":
+            raise ValueError("task constraints already specify the budget and execution objective")
+        selected = {_task_name(row) for row in dataset}
+        if missing := selected - task_constraints.keys():
+            raise ValueError(f"missing constraints for {', '.join(sorted(missing))}")
+
+        def add_execution_requirements(row):
+            info = row["info"]
+            if isinstance(info, str):
+                info = json.loads(info)
+            prompt = [dict(message) for message in row["prompt"]]
+            user_message = next(message for message in reversed(prompt) if message["role"] == "user")
+            requirements = execution_requirements(
+                info["zapier_tools"], task_constraints[_task_name(dict(row))]
+            )
+            user_message["content"] += f"\n\n{requirements}"
+            return {"prompt": prompt}
+
+        dataset = dataset.map(add_execution_requirements)
+
+    preference = preference_for(tool_preference, variant_scenario)
     if tool_budget is not None:
         preference = (
             f"{preference} Keep the total cost of all tool attempts at or below "
@@ -526,10 +554,16 @@ async def run_evaluation(
             if variant_scenario == MULTI_OBJECTIVE:
                 extra_meta["variant_profile_scope"] = MULTI_OBJECTIVE_PROFILE_SCOPE
                 extra_meta["variant_fault_model"] = MULTI_OBJECTIVE_FAULT_MODEL
+            elif variant_scenario == OFFLINE_RELIABILITY:
+                extra_meta["variant_profile_config_sha256"] = OFFLINE_PROFILE_CONFIG_SHA256
         if tool_preference != "neutral":
             extra_meta["tool_preference"] = tool_preference
         if tool_budget is not None:
             extra_meta["tool_budget"] = tool_budget
+        if task_constraints is not None:
+            extra_meta["task_constraints"] = {
+                task["task"]: task_constraints[task["task"]] for task in outputs
+            }
         if max_task_tokens is not None:
             extra_meta["max_task_tokens"] = max_task_tokens
         export_results(

@@ -17,7 +17,13 @@ from automationbench.domains.support.tasks import get_support_zendesk_sf_case_sy
 from automationbench.rubric import create_rubric, partial_credit
 from automationbench.runner import AutomationBenchEnv
 from automationbench.schema.salesforce import base as salesforce_base
-from automationbench.tool_variants import MULTI_OBJECTIVE, VariantExecution, _tool_call_id
+from automationbench.tool_variants import (
+    MULTI_OBJECTIVE,
+    OFFLINE_RELIABILITY,
+    VariantExecution,
+    _tool_call_id,
+    profiles_for_action,
+)
 from automationbench.tools import ALL_TOOLS
 from automationbench.tools.zapier.gmail.message import gmail_send_email
 from automationbench.tools.zapier.google_sheets.row import (
@@ -41,6 +47,7 @@ def envs():
             ("variants", "stability"),
             ("variants", "quality"),
             ("variants", MULTI_OBJECTIVE),
+            ("variants", OFFLINE_RELIABILITY),
         )
     }
 
@@ -56,7 +63,11 @@ async def call(env, state, name, **arguments):
 
 @pytest.mark.parametrize(
     ("scenario", "suffixes"),
-    [("cost-speed", ("economy", "fast")), (MULTI_OBJECTIVE, ("economy", "fast", "reliable"))],
+    [
+        ("cost-speed", ("economy", "fast")),
+        (MULTI_OBJECTIVE, ("economy", "fast", "reliable")),
+        (OFFLINE_RELIABILITY, ("economy", "fast", "reliable")),
+    ],
 )
 def test_each_action_has_provider_compatible_variants(envs, scenario, suffixes):
     base = {tool.name: tool for tool in envs["limited_zapier"].tool_defs}
@@ -102,6 +113,46 @@ def test_task_allowlists_are_covered():
         if isinstance(info, str):
             info = json.loads(info)
         assert set(info["zapier_tools"]) <= names, info["task_name"]
+
+
+@pytest.mark.parametrize(
+    ("action", "latency", "probability"),
+    [("google_sheets_get_many_rows", 1200, 0.02), ("trello_card_update", 600, 0.02)],
+)
+def test_offline_profile_uses_action_overrides_or_defaults(action, latency, probability):
+    economy, fast, reliable = profiles_for_action(action, OFFLINE_RELIABILITY)
+    assert [v.cost_units for v in (economy, fast, reliable)] == [1, 2, 2]
+    assert [v.latency_ms for v in (economy, fast, reliable)] == [latency, latency // 3, latency]
+    assert [v.failure_probability for v in (economy, fast, reliable)] == pytest.approx(
+        [probability, probability, probability / 10]
+    )
+    assert "0.2%" in reliable.describe(offline=True)
+
+
+async def test_offline_reliability_uses_real_tool_results_without_sampling(envs, monkeypatch):
+    def fail_on_draw(*_args):
+        pytest.fail("offline reliability must not sample a tool fault")
+
+    monkeypatch.setattr(VariantExecution, "fault_draw", fail_on_draw)
+    monkeypatch.setattr(Random, "random", fail_on_draw)
+    env = envs[OFFLINE_RELIABILITY]
+    state = await env.setup_state(get_simple_email_sf_contact_phone_update())
+    read = "gmail_find_email_fast"
+    update = "salesforce_contact_update_reliable"
+    for _ in range(2):
+        result = await call(env, state, read, query='subject:"Updated phone number"')
+        assert result["success"]
+    error = await call(env, state, update, id="missing", phone="+1-555-0101")
+    assert error["error"]
+    success = await call(env, state, update, id="003001", phone="+1-555-0101")
+    assert success["success"]
+    assert partial_credit(state) == 1.0
+
+    report = state["tool_variants"]
+    assert [a["included_in_reliability"] for a in report["attempts"]] == [True, True, False, True]
+    assert report["reliability_call_count"] == 3
+    assert report["trace_reliability"] == pytest.approx(0.98**2 * 0.99)
+    assert (report["total_cost_units"], report["total_simulated_latency_ms"]) == (8, 1200)
 
 
 async def test_cost_speed_replay_keeps_original_results_and_score(envs, monkeypatch):

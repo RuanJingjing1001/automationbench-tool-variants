@@ -137,6 +137,13 @@ async def _rerun(
 ) -> None:
     # Imported lazily to avoid an import cycle (eval imports this module's gate).
     from automationbench.scripts.eval import run_evaluation
+    from automationbench.tool_variants import OFFLINE_PROFILE_CONFIG_SHA256, OFFLINE_RELIABILITY
+
+    if (
+        meta.get("variant_scenario") == OFFLINE_RELIABILITY
+        and meta.get("variant_profile_config_sha256") != OFFLINE_PROFILE_CONFIG_SHA256
+    ):
+        raise ValueError("offline reliability profile configuration changed since the original run")
 
     await run_evaluation(
         model=model or meta["model"],
@@ -156,6 +163,7 @@ async def _rerun(
         variant_seed=meta.get("variant_seed", 0),
         tool_preference=meta.get("tool_preference", "neutral"),
         tool_budget=meta.get("tool_budget"),
+        task_constraints=meta.get("task_constraints"),
         max_task_tokens=meta.get("max_task_tokens"),
         max_concurrent=max_concurrent,
         batch=bool(meta.get("batch")) if batch is None else batch,
