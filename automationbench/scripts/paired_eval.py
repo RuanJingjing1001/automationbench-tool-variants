@@ -23,6 +23,7 @@ from automationbench.scripts.eval import _task_name, run_evaluation
 from automationbench.task_constraints import (
     DEADLINE_CONDITIONS,
     EXECUTION_REQUIREMENTS_VERSION,
+    OBJECTIVE_PREFERENCES,
     TaskLimits,
     load_task_constraints,
 )
@@ -44,6 +45,7 @@ PILOT_TASKS = (
     "operations.monday_email_update",
 )
 PREFERENCES = ("cost", "speed")
+OBJECTIVE_METRICS = ("cost_units", "simulated_latency_ms", "trace_reliability")
 DEFAULT_MAX_TASK_TOKENS = 400_000
 PILOT50_PATH = (
     Path(__file__).resolve().parents[2] / "benchmarks" / "holo4-effective-calls-gt10-pilot50.json"
@@ -129,12 +131,13 @@ def compare_runs(
     *,
     native_pass_only: bool = False,
     task_constraints: dict[str, dict[str, TaskLimits]] | None = None,
+    preference_only: bool = False,
 ) -> dict:
     left_arm, right_arm = DEADLINE_CONDITIONS if task_constraints is not None else PREFERENCES
     arms = (left_arm, right_arm)
     if "native" in runs:
         arms = ("native", *arms)
-    if "stability" in runs:
+    if preference_only or "stability" in runs:
         arms = (*arms, "stability")
     eligible = native_full_score_tasks(runs.get("native", {})) if native_pass_only else set(tasks)
     by_arm = {
@@ -187,10 +190,7 @@ def compare_runs(
                 for result in (tight, loose)
             ):
                 pair["tool_metric_deltas"] = {
-                    "loose_minus_tight": {
-                        key: loose[key] - tight[key]
-                        for key in ("cost_units", "simulated_latency_ms", "trace_reliability")
-                    }
+                    "loose_minus_tight": {key: loose[key] - tight[key] for key in OBJECTIVE_METRICS}
                 }
             pairs.append(pair)
             continue
@@ -200,25 +200,34 @@ def compare_runs(
                 for arm in arms
                 if "cost_units" in pair[arm]
                 and pair[arm]["status"] in ("passed", "failed")
+                and (not preference_only or "trace_reliability" in pair[arm])
                 and (
                     "trace_reliability" not in pair[arm]
                     or (pair[arm]["status"] == "passed" and pair[arm]["within_budget"] is not False)
                 )
             ]
+            metric_keys = (
+                OBJECTIVE_METRICS
+                if preference_only
+                else (*OBJECTIVE_METRICS, "injected_failures", "injected_timeouts")
+            )
             pair["tool_metric_deltas"] = {
                 f"{right}_minus_{left}": {
                     key: pair[right][key] - pair[left][key]
-                    for key in (
-                        "cost_units",
-                        "simulated_latency_ms",
-                        "injected_failures",
-                        "injected_timeouts",
-                        "trace_reliability",
-                    )
+                    for key in metric_keys
                     if key in pair[left] and key in pair[right]
                 }
                 for left, right in combinations(comparable, 2)
             }
+            if preference_only:
+                pair["variant_count_deltas"] = {
+                    f"{right}_minus_{left}": {
+                        version: pair[right]["variant_attempt_counts"].get(version, 0)
+                        - pair[left]["variant_attempt_counts"].get(version, 0)
+                        for version in ("economy", "fast", "reliable")
+                    }
+                    for left, right in combinations(comparable, 2)
+                }
         cost, speed = pair["cost"], pair["speed"]
         if (
             "attempts" in cost
@@ -339,6 +348,25 @@ def compare_runs(
         report["summary"]["with_tool_switch"] = sum(
             bool(pair.get("tool_switches")) for pair in pairs
         )
+    if preference_only:
+        matched = {}
+        for left, right in combinations(OBJECTIVE_PREFERENCES, 2):
+            name = f"{right}_minus_{left}"
+            deltas = [
+                pair["tool_metric_deltas"][name]
+                for pair in pairs
+                if name in pair["tool_metric_deltas"]
+            ]
+            matched[name] = {
+                "full_score_pairs": len(deltas),
+                "mean_deltas": {
+                    key: sum(delta[key] for delta in deltas) / len(deltas)
+                    for key in OBJECTIVE_METRICS
+                }
+                if deltas
+                else None,
+            }
+        report["summary"]["matched_full_score"] = matched
     return report
 
 
@@ -351,11 +379,18 @@ async def run_pair(
     max_task_tokens: int | None = None,
     variant_scenario: str | None = None,
     task_constraints: dict[str, dict[str, TaskLimits]] | None = None,
+    preference_only: bool = False,
 ) -> dict:
     resume = getattr(args, "resume", False)
     native_pass_only = getattr(args, "native_pass_only", False)
     include_native = include_native or native_pass_only
     scenario = variant_scenario or ("budget-speed" if args.budget is not None else "cost-speed")
+    if preference_only:
+        if args.budget is not None or task_constraints is not None:
+            raise ValueError("preference-only cannot be combined with task limits")
+        if variant_scenario not in (None, OFFLINE_RELIABILITY):
+            raise ValueError("preference-only uses offline-reliability tool variants")
+        scenario = OFFLINE_RELIABILITY
     arms = ("native", *PREFERENCES) if include_native else PREFERENCES
     if scenario in (MULTI_OBJECTIVE, OFFLINE_RELIABILITY):
         arms = (*arms, "stability")
@@ -389,6 +424,7 @@ async def run_pair(
             max_task_tokens=max_task_tokens,
             export_json=str(path),
             **({"task_constraints": limits} if limits is not None else {}),
+            **({"preference_only": True} if preference_only and not native else {}),
         )
         return json.loads(path.read_text())
 
@@ -430,7 +466,11 @@ async def run_pair(
             config["profile_config_sha256"] = OFFLINE_PROFILE_CONFIG_SHA256
         if task_constraints is not None:
             config["task_constraints"] = task_constraints
+        if task_constraints is not None or preference_only:
             config["execution_requirements_version"] = EXECUTION_REQUIREMENTS_VERSION
+        if preference_only:
+            config["preference_only"] = True
+            config["preferences"] = {arm: OBJECTIVE_PREFERENCES.get(arm, "") for arm in arms}
         args.output_dir.mkdir(parents=True, exist_ok=True)
         with (args.output_dir / ".resume.lock").open("a") as lock:
             try:
@@ -439,7 +479,14 @@ async def run_pair(
                 raise ValueError("another process is already running this experiment") from exc
             tasks, runs, errors = await run_resumable(args, tasks, arms, config, evaluate)
             return save_comparison(
-                args, tasks, runs, errors, scenario, max_task_tokens, task_constraints
+                args,
+                tasks,
+                runs,
+                errors,
+                scenario,
+                max_task_tokens,
+                task_constraints,
+                preference_only=preference_only,
             )
     else:
         args.output_dir.mkdir(parents=True, exist_ok=False)
@@ -465,16 +512,28 @@ async def run_pair(
                 runs[arm] = {}
                 print(f"{arm} evaluation did not finish ({errors[arm]})", flush=True)
 
-    return save_comparison(args, tasks, runs, errors, scenario, max_task_tokens, task_constraints)
+    return save_comparison(
+        args,
+        tasks,
+        runs,
+        errors,
+        scenario,
+        max_task_tokens,
+        task_constraints,
+        preference_only=preference_only,
+    )
 
 
-def save_comparison(args, tasks, runs, errors, scenario, max_task_tokens, task_constraints):
+def save_comparison(
+    args, tasks, runs, errors, scenario, max_task_tokens, task_constraints, *, preference_only=False
+):
     report = compare_runs(
         tasks,
         runs,
         args.budget,
         native_pass_only=getattr(args, "native_pass_only", False),
         task_constraints=task_constraints,
+        preference_only=preference_only,
     )
     report.update(model=args.model, scenario=scenario, budget=args.budget, run_errors=errors)
     if scenario == MULTI_OBJECTIVE:
@@ -483,8 +542,11 @@ def save_comparison(args, tasks, runs, errors, scenario, max_task_tokens, task_c
         report["variant_fault_model"] = MULTI_OBJECTIVE_FAULT_MODEL
     elif scenario == OFFLINE_RELIABILITY:
         report["variant_profile_config_sha256"] = OFFLINE_PROFILE_CONFIG_SHA256
-    if task_constraints is not None:
+    if task_constraints is not None or preference_only:
         report["execution_requirements_version"] = EXECUTION_REQUIREMENTS_VERSION
+    if preference_only:
+        report["preference_only"] = True
+        report["objective_preferences"] = OBJECTIVE_PREFERENCES
     if max_task_tokens is not None:
         report["max_task_tokens"] = max_task_tokens
     write_json(args.output_dir / "comparison.json", report)
@@ -745,6 +807,26 @@ def print_report(report: dict) -> None:
             str(len(pair.get("tool_switches", []))),
         )
     console.print(table)
+    if matched := summary.get("matched_full_score"):
+        paired_table = Table(
+            "Comparison",
+            "Full-score pairs",
+            "Cost Δ (u)",
+            "Time Δ (ms)",
+            "Reliability Δ (pp)",
+            caption="Each difference is the second arm minus the first.",
+        )
+        for comparison, metrics in matched.items():
+            second, first = comparison.split("_minus_")
+            deltas = metrics["mean_deltas"]
+            paired_table.add_row(
+                f"{first.title()} → {second.title()}",
+                str(metrics["full_score_pairs"]),
+                f"{deltas['cost_units']:+.2f}" if deltas else "–",
+                f"{deltas['simulated_latency_ms']:+.1f}" if deltas else "–",
+                f"{deltas['trace_reliability'] * 100:+.2f}" if deltas else "–",
+            )
+        console.print(paired_table)
 
 
 def main() -> None:
@@ -816,6 +898,11 @@ def main() -> None:
         type=Path,
         help="JSON file with each task's tight and loose limits for offline reliability",
     )
+    constraints_group.add_argument(
+        "--preference-only",
+        action="store_true",
+        help="Compare cost, speed and reliability priorities without a tool budget or deadline",
+    )
     args = parser.parse_args()
     task_constraints = None
     if args.task_constraints is not None:
@@ -826,6 +913,10 @@ def main() -> None:
             task_constraints = load_task_constraints(args.task_constraints)
         except (OSError, ValueError) as exc:
             parser.error(f"cannot load task constraints: {exc}")
+    if args.preference_only:
+        if args.variant_scenario not in (None, OFFLINE_RELIABILITY):
+            parser.error("--preference-only uses offline-reliability tool variants")
+        args.variant_scenario = OFFLINE_RELIABILITY
     pilot = args.pilot50 or args.pilot25
     if args.limit is not None and not pilot:
         parser.error("--limit requires --pilot50 or --pilot25")
@@ -880,6 +971,7 @@ def main() -> None:
                 max_task_tokens=args.max_task_tokens,
                 variant_scenario=args.variant_scenario,
                 task_constraints=task_constraints,
+                preference_only=args.preference_only,
             )
         )
     except (OSError, ValueError, KeyError) as exc:

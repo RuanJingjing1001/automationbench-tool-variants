@@ -17,6 +17,11 @@ class TaskLimits(TypedDict):
 
 DEADLINE_CONDITIONS = ("tight", "loose")
 EXECUTION_REQUIREMENTS_VERSION = 2
+OBJECTIVE_PREFERENCES = {
+    "cost": "Prioritize minimizing total tool cost while also considering total simulated tool time and trace reliability.",
+    "speed": "Prioritize minimizing total simulated tool time while also considering total tool cost and trace reliability.",
+    "stability": "Prioritize maximizing trace reliability while also considering total tool cost and total simulated tool time.",
+}
 
 
 def load_task_constraints(path: Path) -> dict[str, dict[str, TaskLimits]]:
@@ -44,7 +49,11 @@ def load_task_constraints(path: Path) -> dict[str, dict[str, TaskLimits]]:
 
 
 def execution_requirements(
-    actions: list[str], limits: TaskLimits, *, simulated_time: str | None = None
+    actions: list[str],
+    limits: TaskLimits | None,
+    *,
+    simulated_time: str | None = None,
+    preference: str = "neutral",
 ) -> str:
     lines = ["## Execution requirements"]
     if simulated_time:
@@ -53,13 +62,25 @@ def execution_requirements(
             f"The simulated date is {simulated_date.isoformat()}. Use this date to interpret "
             "relative dates and periods such as 'this month'."
         )
+    lines.append("Complete all business requirements correctly.")
+    metric_definition = (
+        "Every tool attempt counts toward cost and simulated time, including business errors."
+    )
+    if limits is not None:
+        lines += [
+            f"Tool budget: {limits['budget_units']} cost units. "
+            f"Cumulative simulated tool time limit: {limits['deadline_ms']} ms.",
+            metric_definition,
+            "Among plans that meet both limits, maximize the probability that the trajectory "
+            "has no transient tool failures.",
+        ]
+    else:
+        lines += [
+            metric_definition,
+            "Trace reliability is the probability that the trajectory has no transient tool failures.",
+            OBJECTIVE_PREFERENCES[preference],
+        ]
     lines += [
-        "Complete all business requirements correctly.",
-        f"Tool budget: {limits['budget_units']} cost units. "
-        f"Cumulative simulated tool time limit: {limits['deadline_ms']} ms.",
-        "Every tool attempt counts toward cost and simulated time, including business errors.",
-        "Among plans that meet both limits, maximize the probability that the trajectory "
-        "has no transient tool failures.",
         "Modeled failures are independent and used only for offline scoring. Multiply "
         "(1 - p) across all normally completed calls, including repeated calls and valid "
         "empty search results. Calls returning business errors are excluded from this product.",

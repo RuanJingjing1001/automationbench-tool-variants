@@ -145,10 +145,9 @@ async def _rerun(
         and meta.get("variant_profile_config_sha256") != OFFLINE_PROFILE_CONFIG_SHA256
     ):
         raise ValueError("offline reliability profile configuration changed since the original run")
-    if (
-        meta.get("task_constraints") is not None
-        and meta.get("execution_requirements_version") != EXECUTION_REQUIREMENTS_VERSION
-    ):
+    if (meta.get("task_constraints") is not None or meta.get("preference_only")) and meta.get(
+        "execution_requirements_version"
+    ) != EXECUTION_REQUIREMENTS_VERSION:
         raise ValueError("execution requirements changed since the original run")
 
     await run_evaluation(
@@ -170,6 +169,7 @@ async def _rerun(
         tool_preference=meta.get("tool_preference", "neutral"),
         tool_budget=meta.get("tool_budget"),
         task_constraints=meta.get("task_constraints"),
+        preference_only=meta.get("preference_only", False),
         max_task_tokens=meta.get("max_task_tokens"),
         max_concurrent=max_concurrent,
         batch=bool(meta.get("batch")) if batch is None else batch,

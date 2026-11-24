@@ -9,7 +9,7 @@ import pytest
 
 from automationbench.scripts import eval as benchmark_eval, paired_eval
 from automationbench.scripts.paired_eval import compare_runs, load_pilot50
-from automationbench.task_constraints import load_task_constraints
+from automationbench.task_constraints import OBJECTIVE_PREFERENCES, load_task_constraints
 from automationbench.tool_variants import MULTI_OBJECTIVE, OFFLINE_RELIABILITY, variants_for
 
 
@@ -230,6 +230,83 @@ async def test_deadline_prompt_appends_simulated_date_limits_and_tool_menu(
             variant_scenario=OFFLINE_RELIABILITY,
             task_constraints={name: {"budget_units": 27, "deadline_ms": deadline_ms}},
         )
+
+
+async def test_preference_only_pair_runs_three_matched_prompts(monkeypatch, tmp_path):
+    name = "finance.qb_recurring_journal"
+    args = SimpleNamespace(
+        output_dir=tmp_path / "preferences",
+        budget=None,
+        model="test-model",
+        base_url=None,
+        api="chat_completions",
+        variant_seed=0,
+        max_steps=64,
+        max_concurrent=1,
+        arm_timeout=10,
+        resume=True,
+    )
+    profiles = {
+        "cost": ("economy", 1, 1200, 0.98, 1.0),
+        "speed": ("fast", 2, 400, 0.98, 1.0),
+        "stability": ("reliable", 2, 1200, 0.998, 0.5),
+    }
+    prompts = {}
+
+    class TestEnv:
+        def __init__(self, *, dataset, **kwargs):
+            self.dataset = dataset
+            assert kwargs["variant_scenario"] == OFFLINE_RELIABILITY
+
+        async def evaluate(self, **_):
+            (row,) = self.dataset
+            user = next(
+                message["content"] for message in row["prompt"] if message["role"] == "user"
+            )
+            arm = next(arm for arm, sentence in OBJECTIVE_PREFERENCES.items() if sentence in user)
+            prompts[arm] = row["prompt"]
+            version, cost, latency, reliability, score = profiles[arm]
+            action = "google_sheets_get_many_rows"
+            task = make_task(name, score == 1.0, cost, latency, [(action, f"{action}_{version}")])
+            task["tool_variants"].update(trace_reliability=reliability, reliability_call_count=1)
+            return {
+                "metadata": {"avg_reward": score},
+                "outputs": [{**row, "reward": score, "tool_variants": task["tool_variants"]}],
+            }
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setattr(benchmark_eval, "RetryingOpenAIChatCompletionsClient", lambda _: None)
+    monkeypatch.setattr(benchmark_eval, "AutomationBenchEnv", TestEnv)
+    report = await paired_eval.run_pair(args, (name,), ["finance"], preference_only=True)
+    assert not report["run_errors"]
+    assert list(prompts) == ["cost", "speed", "stability"]
+    common_prompts = []
+    for arm, messages in prompts.items():
+        user = next(message["content"] for message in messages if message["role"] == "user")
+        assert "The simulated date is 2026-02-01." in user
+        assert "| `google_sheets_get_many_rows_fast` | 2 | 400 | 2% |" in user
+        assert "Tool budget:" not in user
+        assert "Cumulative simulated tool time limit:" not in user
+        assert "Execution preference:" not in messages[0]["content"]
+        common_prompts.append(user.replace(OBJECTIVE_PREFERENCES[arm], ""))
+        exported = json.loads((args.output_dir / f"{arm}.json").read_text())
+        assert exported["meta"]["preference_only"] is True
+    assert len(set(common_prompts)) == 1
+    pair = report["tasks"][0]
+    assert pair["stability"]["score"] == 0.5
+    assert pair["variant_count_deltas"]["speed_minus_cost"] == {
+        "economy": -1,
+        "fast": 1,
+        "reliable": 0,
+    }
+    assert report["summary"]["matched_full_score"] == {
+        "speed_minus_cost": {
+            "full_score_pairs": 1,
+            "mean_deltas": {"cost_units": 1, "simulated_latency_ms": -800, "trace_reliability": 0},
+        },
+        "stability_minus_cost": {"full_score_pairs": 0, "mean_deltas": None},
+        "stability_minus_speed": {"full_score_pairs": 0, "mean_deltas": None},
+    }
 
 
 def test_pilot50_runs_the_same_first_five_tasks_in_all_three_arms(monkeypatch, tmp_path):

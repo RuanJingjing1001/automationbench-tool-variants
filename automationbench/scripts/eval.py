@@ -38,6 +38,7 @@ from automationbench.rubric import create_rubric
 from automationbench.runner import AutomationBenchEnv
 from automationbench.task_constraints import (
     EXECUTION_REQUIREMENTS_VERSION,
+    OBJECTIVE_PREFERENCES,
     TaskLimits,
     execution_requirements,
 )
@@ -236,6 +237,7 @@ async def run_evaluation(
     tool_budget: int | None = None,
     max_task_tokens: int | None = None,
     task_constraints: dict[str, TaskLimits] | None = None,
+    preference_only: bool = False,
 ) -> None:
     """Run AutomationBench evaluation."""
     if max_task_tokens is not None and max_task_tokens < 1:
@@ -259,14 +261,20 @@ async def run_evaluation(
         dataset = dataset.select(indices)
         console.print(f"[key]Filtering to {len(indices)} tasks: {task_names}[/key]")
 
-    if task_constraints is not None:
+    if task_constraints is not None or preference_only:
         if toolset != "variants" or variant_scenario != OFFLINE_RELIABILITY:
-            raise ValueError("task constraints require offline-reliability tool variants")
-        if tool_budget is not None or tool_preference != "neutral":
-            raise ValueError("task constraints already specify the budget and execution objective")
-        selected = {_task_name(row) for row in dataset}
-        if missing := selected - task_constraints.keys():
-            raise ValueError(f"missing constraints for {', '.join(sorted(missing))}")
+            raise ValueError("execution requirements use offline-reliability tool variants")
+        if preference_only:
+            if task_constraints is not None or tool_budget is not None:
+                raise ValueError("preference-only cannot be combined with task limits")
+            if tool_preference not in OBJECTIVE_PREFERENCES:
+                raise ValueError("preference-only requires cost, speed, or stability")
+        else:
+            if tool_budget is not None or tool_preference != "neutral":
+                raise ValueError("task constraints already specify the budget and execution objective")
+            selected = {_task_name(row) for row in dataset}
+            if missing := selected - task_constraints.keys():
+                raise ValueError(f"missing constraints for {', '.join(sorted(missing))}")
 
         def add_execution_requirements(row):
             info = row["info"]
@@ -277,15 +285,16 @@ async def run_evaluation(
             user_message = next(message for message in reversed(prompt) if message["role"] == "user")
             requirements = execution_requirements(
                 info["zapier_tools"],
-                task_constraints[_task_name(dict(row))],
+                task_constraints[_task_name(dict(row))] if task_constraints is not None else None,
                 simulated_time=initial_meta.get("current_time"),
+                preference=tool_preference,
             )
             user_message["content"] += f"\n\n{requirements}"
             return {"prompt": prompt}
 
         dataset = dataset.map(add_execution_requirements)
 
-    preference = preference_for(tool_preference, variant_scenario)
+    preference = "" if preference_only else preference_for(tool_preference, variant_scenario)
     if tool_budget is not None:
         preference = (
             f"{preference} Keep the total cost of all tool attempts at or below "
@@ -567,8 +576,11 @@ async def run_evaluation(
             extra_meta["tool_preference"] = tool_preference
         if tool_budget is not None:
             extra_meta["tool_budget"] = tool_budget
-        if task_constraints is not None:
+        if task_constraints is not None or preference_only:
             extra_meta["execution_requirements_version"] = EXECUTION_REQUIREMENTS_VERSION
+        if preference_only:
+            extra_meta["preference_only"] = True
+        if task_constraints is not None:
             extra_meta["task_constraints"] = {
                 task["task"]: task_constraints[task["task"]] for task in outputs
             }

@@ -63,6 +63,24 @@ uv run python -m automationbench.scripts.paired_eval \
   --output-dir visualizer/runs/local/pilot25-offline-reliability
 ```
 
+#### 同题、不同目标偏好
+
+`--preference-only` 为每道题分别运行费用优先（`cost`）、时效优先（`speed`）和可靠性优先（`stability`）。
+三组题面包含相同的业务要求、模拟日期和工具属性表，各组只改变目标偏好。业务以满分为完成标准。
+此模式使用 `offline-reliability`，由各组自行决定总工具费用和累计模拟耗时。
+
+```sh
+uv run --locked python -m automationbench.scripts.paired_eval \
+  --model gpt-5.5 --api chat_completions --base-url https://api.ai-gaochao.cn/v1 \
+  --preference-only --tasks finance.qb_recurring_journal --max-steps 64 \
+  --arm-timeout 3600 --max-concurrent 1 --resume \
+  --output-dir visualizer/runs/local/quickbooks-preferences-gpt55
+```
+
+`comparison.json` 保留每组业务得分、三个工具指标和调用记录。每对偏好只在两个组都满分的同题上
+计算指标差值和版本调用次数差。`summary.matched_full_score` 给出每对偏好的共同满分题数和平均差值。
+可用 `--pilot25` 运行题单，用 `--limit` 选取前几题。
+
 #### 同预算、不同模拟时限
 
 [quickbooks-task-constraints.json](benchmarks/quickbooks-task-constraints.json) 为 QuickBooks 周期性分录设置
