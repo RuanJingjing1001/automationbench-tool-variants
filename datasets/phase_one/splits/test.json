@@ -1,0 +1,162 @@
+[
+  {
+    "environment": "automationbench",
+    "task_id": "finance.contract_billing"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "finance.cost_center_allocation"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "finance.credit_card_reconciliation"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "finance.depreciation_schedule"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "finance.escrow_tracking"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "finance.expense_reclassification"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "finance.grant_expense_tracking"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "hr.candidate_rejection_followup"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "hr.diversity_metrics_report"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "marketing.blog_refresh_queue"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "marketing.campaign_calendar"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "marketing.campaign_handoff"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "marketing.competitor_product_launch"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "marketing.content_repurpose"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "sales.calendar_crm_meeting"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "sales.calendly_discovery_call"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "sales.chatgpt_lead_classification_pipeline"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "sales.chatgpt_lead_summary_generator"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "sales.contract_renewal_coordinator"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "support.freshdesk_sla_monitoring"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "support.freshdesk_warranty_adjudication"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "support.freshdesk_zoho_migration"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "support.gorgias_freshdesk_migration"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "support.gorgias_loyalty_program"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "07b42fd_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "07b42fd_2"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "07b42fd_3"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "383cbac_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "3c13f5a_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "3c13f5a_2"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "3c13f5a_3"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "4fab96f_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "530b157_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "6ea6792_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "76f2c72_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "76f2c72_3"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "771d8fc_2"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "aa8502b_2"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "b0a8eae_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "c901732_1"
+  }
+]

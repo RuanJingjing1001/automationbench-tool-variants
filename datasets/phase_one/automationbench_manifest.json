@@ -1,0 +1,1032 @@
+[
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "finance.airtable_expense_approval",
+    "template_group": "finance.airtable_expense_approval",
+    "split": "dev",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "finance-airtable-expense-approval-4026-4461817a",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/finance-airtable-expense-approval-4026-4461817a.json",
+      "sha256": "f3701f9cc47d6b6c67abc1b1eb141c713f8168cb158cf06d8f44bc44711c1e30"
+    },
+    "metrics": {
+      "effective_business_calls": 17,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "airtable",
+        "gmail",
+        "google_drive"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "finance.contract_billing",
+    "template_group": "finance.contract_billing",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "finance-contract-billing-4039-e3a3454b",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/finance-contract-billing-4039-e3a3454b.json",
+      "sha256": "45e9c3220bddf8162de82019230ffca570617bc181b754c130d552cc5234dcdc"
+    },
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 15,
+      "business_attempts": 15,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "quickbooks"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "finance.cost_center_allocation",
+    "template_group": "finance.cost_center_allocation",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "finance-cost-center-allocation-4055-0f0108bc",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/finance-cost-center-allocation-4055-0f0108bc.json",
+      "sha256": "4e7899df75268d9e6a8aed703da79b4ec27ad27cba3ddef534bf060b8aedb72f"
+    },
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 13,
+      "business_attempts": 13,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "gmail.googleapis.com",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "finance.credit_card_reconciliation",
+    "template_group": "finance.credit_card_reconciliation",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "finance-credit-card-reconciliation-4051-9e769adf",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/finance-credit-card-reconciliation-4051-9e769adf.json",
+      "sha256": "291e0bec6c2f698d45b0b80eaf23ad0015b4b0203a37d9ce7de84a15495ccc81"
+    },
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 16,
+      "business_attempts": 16,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "finance.depreciation_schedule",
+    "template_group": "finance.depreciation_schedule",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "finance-depreciation-schedule-4054-75e9401d",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/finance-depreciation-schedule-4054-75e9401d.json",
+      "sha256": "4c1b5cfc8d9c76d1cc266fabd27b5d07d5eb596baf017a554414340f066b712d"
+    },
+    "metrics": {
+      "effective_business_calls": 16,
+      "total_attempts": 16,
+      "business_attempts": 16,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 12,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "quickbooks",
+        "slack",
+        "wave",
+        "xero"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "finance.escrow_tracking",
+    "template_group": "finance.escrow_tracking",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "finance-escrow-tracking-4079-27acddda",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/finance-escrow-tracking-4079-27acddda.json",
+      "sha256": "18cdff089a7b9062a77651357377364032ea1aa234c02ada3fa8c8430ccd160a"
+    },
+    "metrics": {
+      "effective_business_calls": 17,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "finance.expense_reclassification",
+    "template_group": "finance.expense_reclassification",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "finance-expense-reclassification-4034-88654fb5",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/finance-expense-reclassification-4034-88654fb5.json",
+      "sha256": "d298058850207ad51b8f74fc7eb5c8b73477b13ae803a55f6bc320d05c09e669"
+    },
+    "metrics": {
+      "effective_business_calls": 14,
+      "total_attempts": 15,
+      "business_attempts": 15,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "xero"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "finance.grant_expense_tracking",
+    "template_group": "finance.grant_expense_tracking",
+    "split": "test",
+    "length_bin": "26-40",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "finance-grant-expense-tracking-4052-5383c478",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/finance-grant-expense-tracking-4052-5383c478.json",
+      "sha256": "3d9d1599bcea784e62bfe373ff5a82b19678b41a27385ab15a3e67a74065f0fd"
+    },
+    "metrics": {
+      "effective_business_calls": 33,
+      "total_attempts": 35,
+      "business_attempts": 35,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 11,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "sheets.googleapis.com"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "hr.candidate_pipeline_report",
+    "template_group": "hr.candidate_pipeline_report",
+    "split": "dev",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "hr-candidate-pipeline-report-5038-b304b868",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/hr-candidate-pipeline-report-5038-b304b868.json",
+      "sha256": "bc7d29f820ee3187c1d7aef4041d5b0a013204f88ede8cfc11effa715de5e963"
+    },
+    "metrics": {
+      "effective_business_calls": 13,
+      "total_attempts": 14,
+      "business_attempts": 14,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 10,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "recruitee",
+        "trello"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "hr.candidate_rejection_followup",
+    "template_group": "hr.candidate_rejection_followup",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "hr-candidate-rejection-followup-5018-06478c7a",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/hr-candidate-rejection-followup-5018-06478c7a.json",
+      "sha256": "6e1b7878d267def7ac2590d1818037ba9034d2bbba47c9ce70b721ca3c406fe3"
+    },
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 12,
+      "business_attempts": 12,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "hr.diversity_metrics_report",
+    "template_group": "hr.diversity_metrics_report",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "hr-diversity-metrics-report-5115-95e1db94",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/hr-diversity-metrics-report-5115-95e1db94.json",
+      "sha256": "efe83027ece286fc85576fac3de002fe9d343c13d91578d2d29b8fbbaa9ffa91"
+    },
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 12,
+      "business_attempts": 12,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "marketing.analyst_briefing",
+    "template_group": "marketing.analyst_briefing",
+    "split": "dev",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "marketing-analyst-briefing-1099-9bb6cd16",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/marketing-analyst-briefing-1099-9bb6cd16.json",
+      "sha256": "299beab2b70ac89b11a93c0ef2044a5ed473420ba7223cea758f719e68150dec"
+    },
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 12,
+      "business_attempts": 12,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "marketing.blog_refresh_queue",
+    "template_group": "marketing.blog_refresh_queue",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "marketing-blog-refresh-queue-1162-10650216",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/marketing-blog-refresh-queue-1162-10650216.json",
+      "sha256": "9375f58f70e0dd21ff551740133f582c3cd2d22da1fdc9b524def459a4a4063a"
+    },
+    "metrics": {
+      "effective_business_calls": 17,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 10,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "marketing.campaign_calendar",
+    "template_group": "marketing.campaign_calendar",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "marketing-campaign-calendar-1074-ee539abf",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/marketing-campaign-calendar-1074-ee539abf.json",
+      "sha256": "291a3a4ff9456b3133985f546e22bcdd85055e5377747ef5e36a770e06ee8fed"
+    },
+    "metrics": {
+      "effective_business_calls": 11,
+      "total_attempts": 11,
+      "business_attempts": 11,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "marketing.campaign_handoff",
+    "template_group": "marketing.campaign_handoff",
+    "split": "test",
+    "length_bin": "26-40",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "marketing-campaign-handoff-1077-91b55dba",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/marketing-campaign-handoff-1077-91b55dba.json",
+      "sha256": "f2f6c886a16cde6c6864473b198b791b75f1eace6d71a760b9159b0e610db606"
+    },
+    "metrics": {
+      "effective_business_calls": 27,
+      "total_attempts": 27,
+      "business_attempts": 27,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "marketing.competitor_product_launch",
+    "template_group": "marketing.competitor_product_launch",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "marketing-competitor-product-launch-1131-5b6c6f45",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/marketing-competitor-product-launch-1131-5b6c6f45.json",
+      "sha256": "78501789b8313089917cdbc5d5f1965d3a8e02e5855c4d781d78ab040ee384ff"
+    },
+    "metrics": {
+      "effective_business_calls": 18,
+      "total_attempts": 18,
+      "business_attempts": 18,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "marketing.content_repurpose",
+    "template_group": "marketing.content_repurpose",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "marketing-content-repurpose-1083-9bc93b05",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/marketing-content-repurpose-1083-9bc93b05.json",
+      "sha256": "0168fad879e7d401a73d3b547b7cf7a45cb40e3953479a20ea44b963fb822e9c"
+    },
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 15,
+      "business_attempts": 15,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "operations.canva_asset_management",
+    "template_group": "operations.canva_asset_management",
+    "split": "dev",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "operations-canva-asset-management-1296-46910b61",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/operations-canva-asset-management-1296-46910b61.json",
+      "sha256": "fcf69f00496faca4d4ee6e7a62a785631dd4f2c9fe718041e2b0978c8c498962"
+    },
+    "metrics": {
+      "effective_business_calls": 11,
+      "total_attempts": 11,
+      "business_attempts": 11,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "canva",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "sales.add_contact_to_campaign",
+    "template_group": "sales.add_contact_to_campaign",
+    "split": "dev",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "sales-add-contact-to-campaign-4-0068087a",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/sales-add-contact-to-campaign-4-0068087a.json",
+      "sha256": "a05a9e12c22cd4f01ecac44a72750f4e8bd4e834c279c23ef2dc03af4a2304db"
+    },
+    "metrics": {
+      "effective_business_calls": 17,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "salesforce"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "sales.calendar_crm_meeting",
+    "template_group": "sales.calendar_crm_meeting",
+    "split": "test",
+    "length_bin": "11-15",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "sales-calendar-crm-meeting-519-fadc1fdb",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/sales-calendar-crm-meeting-519-fadc1fdb.json",
+      "sha256": "28f52a89e1592745828ca5c3a0b7588e2e82af6e4a5bb74e2ac4718a9cbe8bb5"
+    },
+    "metrics": {
+      "effective_business_calls": 13,
+      "total_attempts": 13,
+      "business_attempts": 13,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_calendar",
+        "google_drive",
+        "google_sheets",
+        "salesforce"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "sales.calendly_discovery_call",
+    "template_group": "sales.calendly_discovery_call",
+    "split": "test",
+    "length_bin": "26-40",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "sales-calendly-discovery-call-703-eb27bc80",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/sales-calendly-discovery-call-703-eb27bc80.json",
+      "sha256": "e59555fa27119b2ac00b35f2cecea3885320c378dd4d21ddd6c5e433dbf1e254"
+    },
+    "metrics": {
+      "effective_business_calls": 29,
+      "total_attempts": 30,
+      "business_attempts": 30,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 13,
+      "applications": [
+        "calendly",
+        "gmail",
+        "google_calendar",
+        "google_drive",
+        "google_sheets",
+        "salesforce",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "sales.chatgpt_lead_classification_pipeline",
+    "template_group": "sales.chatgpt_lead_classification_pipeline",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "sales-chatgpt-lead-classification-pipeline-1131-7d9fcd98",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/sales-chatgpt-lead-classification-pipeline-1131-7d9fcd98.json",
+      "sha256": "f63c26465ffd771cf4b76eb05e2f98d241fa571350a35d0b449c66098400727f"
+    },
+    "metrics": {
+      "effective_business_calls": 21,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "openai",
+        "salesforce",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "sales.chatgpt_lead_summary_generator",
+    "template_group": "sales.chatgpt_lead_summary_generator",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "sales-chatgpt-lead-summary-generator-1134-699f2f41",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/sales-chatgpt-lead-summary-generator-1134-699f2f41.json",
+      "sha256": "99dc08a846d8176ca94ba4946f515b4ff310ff9eec7121407866ef0f82230bd1"
+    },
+    "metrics": {
+      "effective_business_calls": 21,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "hubspot",
+        "openai",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "sales.contract_renewal_coordinator",
+    "template_group": "sales.contract_renewal_coordinator",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "sales-contract-renewal-coordinator-1181-135e3038",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/sales-contract-renewal-coordinator-1181-135e3038.json",
+      "sha256": "ad7dffa1fddbb06689f22864fb1c998da881f5cd3b3278c424db6b4824a57444"
+    },
+    "metrics": {
+      "effective_business_calls": 18,
+      "total_attempts": 18,
+      "business_attempts": 18,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 13,
+      "applications": [
+        "calendly",
+        "docusign",
+        "freshdesk",
+        "google_calendar",
+        "salesforce",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "support.freshdesk_journey_mapping",
+    "template_group": "support.freshdesk_journey_mapping",
+    "split": "dev",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "support-freshdesk-journey-mapping-1493-50374ac1",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/support-freshdesk-journey-mapping-1493-50374ac1.json",
+      "sha256": "63a8cd07dccb1719277b18d5b756c2e48560f4c89614fc057f922ebf3a161122"
+    },
+    "metrics": {
+      "effective_business_calls": 24,
+      "total_attempts": 24,
+      "business_attempts": 24,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 12,
+      "applications": [
+        "freshdesk",
+        "google_drive",
+        "google_sheets",
+        "helpcrunch",
+        "hubspot",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "support.freshdesk_sla_monitoring",
+    "template_group": "support.freshdesk_sla_monitoring",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "support-freshdesk-sla-monitoring-1458-451177d2",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/support-freshdesk-sla-monitoring-1458-451177d2.json",
+      "sha256": "4150ea5589dd16902a625568ae3411aae0a678dd22f064ab08dff1f79ed3401e"
+    },
+    "metrics": {
+      "effective_business_calls": 21,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "freshdesk",
+        "gmail",
+        "google_sheets",
+        "jira",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "support.freshdesk_warranty_adjudication",
+    "template_group": "support.freshdesk_warranty_adjudication",
+    "split": "test",
+    "length_bin": "26-40",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "support-freshdesk-warranty-adjudication-1567-f046f583",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/support-freshdesk-warranty-adjudication-1567-f046f583.json",
+      "sha256": "e8fa8b799f51cf8c31b537cbb5642ab4c09c7e9a5fb1ae2d0248c16ee026b254"
+    },
+    "metrics": {
+      "effective_business_calls": 30,
+      "total_attempts": 30,
+      "business_attempts": 30,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "freshdesk",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "support.freshdesk_zoho_migration",
+    "template_group": "support.freshdesk_zoho_migration",
+    "split": "test",
+    "length_bin": "26-40",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "support-freshdesk-zoho-migration-1466-8ac50b4b",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/support-freshdesk-zoho-migration-1466-8ac50b4b.json",
+      "sha256": "4b00f2f08f0bfaebec0fc929f799bb236c3f2d48964d229d0b505e09cdab6a9c"
+    },
+    "metrics": {
+      "effective_business_calls": 30,
+      "total_attempts": 36,
+      "business_attempts": 36,
+      "failed_business_attempts": 6,
+      "duplicate_reads": 0,
+      "distinct_apis": 15,
+      "applications": [
+        "desk.zoho.com",
+        "freshdesk",
+        "google_sheets",
+        "slack",
+        "zoho_desk"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "support.gorgias_freshdesk_migration",
+    "template_group": "support.gorgias_freshdesk_migration",
+    "split": "test",
+    "length_bin": "16-25",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "support-gorgias-freshdesk-migration-1432-5c28cef1",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/support-gorgias-freshdesk-migration-1432-5c28cef1.json",
+      "sha256": "4a673a2b73268e867e41706b4a53dddf646082413fb85a052a8bc1877b3dbdfd"
+    },
+    "metrics": {
+      "effective_business_calls": 25,
+      "total_attempts": 25,
+      "business_attempts": 25,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "freshdesk",
+        "google_drive",
+        "google_sheets",
+        "gorgias",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "environment": "automationbench",
+    "task_id": "support.gorgias_loyalty_program",
+    "template_group": "support.gorgias_loyalty_program",
+    "split": "test",
+    "length_bin": "26-40",
+    "source": {
+      "kind": "holo4",
+      "model": "Holo4 27B",
+      "successful": true,
+      "trace_id": "support-gorgias-loyalty-program-1580-af520888",
+      "revision": "ede2a362c99ddba0d03f439c47a0b8fea6abae22",
+      "url": "https://huggingface.co/datasets/Hcompany/trajectories/resolve/ede2a362c99ddba0d03f439c47a0b8fea6abae22/data/t/support-gorgias-loyalty-program-1580-af520888.json",
+      "sha256": "bba3cfd08e4349269ebac9c4fe13d57a6dd5495cd018fb714f6df60ce94718fa"
+    },
+    "metrics": {
+      "effective_business_calls": 31,
+      "total_attempts": 32,
+      "business_attempts": 32,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_sheets",
+        "gorgias",
+        "slack"
+      ]
+    },
+    "environment_version": {
+      "repository_commit": "d51d7fdba12500f1ad2d0e9501a56aa6c836f45e"
+    }
+  }
+]

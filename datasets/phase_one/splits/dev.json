@@ -1,0 +1,42 @@
+[
+  {
+    "environment": "automationbench",
+    "task_id": "finance.airtable_expense_approval"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "hr.candidate_pipeline_report"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "marketing.analyst_briefing"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "operations.canva_asset_management"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "sales.add_contact_to_campaign"
+  },
+  {
+    "environment": "automationbench",
+    "task_id": "support.freshdesk_journey_mapping"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "0d8a4ee_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "22cc237_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "287e338_1"
+  },
+  {
+    "environment": "appworld",
+    "task_id": "2a163ab_1"
+  }
+]

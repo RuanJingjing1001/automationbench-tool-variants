@@ -1,0 +1,1707 @@
+[
+  {
+    "trace_id": "finance-airtable-expense-approval-4026-4461817a",
+    "task_id": "finance.airtable_expense_approval",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 17,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "airtable",
+        "gmail",
+        "google_drive"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-airtable-skills-matrix-5048-32a02edb",
+    "task_id": "hr.airtable_skills_matrix",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 10,
+      "total_attempts": 10,
+      "business_attempts": 10,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "airtable",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "marketing-ad-platform-audit-1012-8b782342",
+    "task_id": "marketing.ad_platform_audit",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 25,
+      "total_attempts": 28,
+      "business_attempts": 28,
+      "failed_business_attempts": 3,
+      "duplicate_reads": 0,
+      "distinct_apis": 11,
+      "applications": [
+        "gmail",
+        "google_ads",
+        "google_drive",
+        "sheets.googleapis.com",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-access-request-validation-1323-88c9cb5b",
+    "task_id": "operations.access_request_validation",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 18,
+      "total_attempts": 19,
+      "business_attempts": 19,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "asana",
+        "gmail",
+        "gmail.googleapis.com",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-add-contact-to-campaign-4-0068087a",
+    "task_id": "sales.add_contact_to_campaign",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 17,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "salesforce"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "simple-escalation-zendesk-slack-3187-24406721",
+    "task_id": "simple.escalation_zendesk_slack",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 19,
+      "total_attempts": 26,
+      "business_attempts": 26,
+      "failed_business_attempts": 7,
+      "duplicate_reads": 0,
+      "distinct_apis": 16,
+      "applications": [
+        "bamboohr",
+        "gmail",
+        "google_drive",
+        "helpscout",
+        "slack",
+        "zendesk"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-freshdesk-contract-renewal-1490-9408241e",
+    "task_id": "support.freshdesk_contract_renewal",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 16,
+      "total_attempts": 22,
+      "business_attempts": 22,
+      "failed_business_attempts": 6,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "freshdesk",
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-closing-journal-automation-4074-857e1f11",
+    "task_id": "finance.closing_journal_automation",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 12,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "quickbooks",
+        "wave",
+        "xero"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-background-check-followup-5120-463a2e52",
+    "task_id": "hr.background_check_followup",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 19,
+      "total_attempts": 19,
+      "business_attempts": 19,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      false,
+      false
+    ]
+  },
+  {
+    "trace_id": "marketing-analyst-briefing-1099-9bb6cd16",
+    "task_id": "marketing.analyst_briefing",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 12,
+      "business_attempts": 12,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-canva-asset-management-1296-46910b61",
+    "task_id": "operations.canva_asset_management",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 11,
+      "total_attempts": 11,
+      "business_attempts": 11,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "canva",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-apply-project-label-105-7c6748ba",
+    "task_id": "sales.apply_project_label",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 26,
+      "total_attempts": 26,
+      "business_attempts": 26,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      false,
+      false
+    ]
+  },
+  {
+    "trace_id": "simple-escalation-zendesk-slack-3187-29a9f99c",
+    "task_id": "simple.escalation_zendesk_slack",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 20,
+      "total_attempts": 24,
+      "business_attempts": 24,
+      "failed_business_attempts": 4,
+      "duplicate_reads": 0,
+      "distinct_apis": 17,
+      "applications": [
+        "bamboohr",
+        "gmail",
+        "google_drive",
+        "hiver",
+        "slack",
+        "slack.com",
+        "zendesk"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-freshdesk-journey-mapping-1493-50374ac1",
+    "task_id": "support.freshdesk_journey_mapping",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 24,
+      "total_attempts": 24,
+      "business_attempts": 24,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 12,
+      "applications": [
+        "freshdesk",
+        "google_drive",
+        "google_sheets",
+        "helpcrunch",
+        "hubspot",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-contract-billing-4039-e3a3454b",
+    "task_id": "finance.contract_billing",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 15,
+      "business_attempts": 15,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "quickbooks"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-benefits-enrollment-review-5134-0b69e896",
+    "task_id": "hr.benefits_enrollment_review",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 16,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "bamboohr",
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      false,
+      false
+    ]
+  },
+  {
+    "trace_id": "marketing-analyst-mention-tracking-1136-7426b821",
+    "task_id": "marketing.analyst_mention_tracking",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 13,
+      "total_attempts": 14,
+      "business_attempts": 14,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "gmail",
+        "gmail.googleapis.com",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-chatgpt-feedback-analysis-1283-7629c3e8",
+    "task_id": "operations.chatgpt_feedback_analysis",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 46,
+      "total_attempts": 46,
+      "business_attempts": 46,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "openai",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-calendar-crm-meeting-519-fadc1fdb",
+    "task_id": "sales.calendar_crm_meeting",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 13,
+      "total_attempts": 13,
+      "business_attempts": 13,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_calendar",
+        "google_drive",
+        "google_sheets",
+        "salesforce"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "simple-escalation-zendesk-slack-3187-d43ce017",
+    "task_id": "simple.escalation_zendesk_slack",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 9,
+      "total_attempts": 10,
+      "business_attempts": 10,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "slack",
+        "zendesk"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-freshdesk-sla-monitoring-1458-451177d2",
+    "task_id": "support.freshdesk_sla_monitoring",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 21,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "freshdesk",
+        "gmail",
+        "google_sheets",
+        "jira",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-cost-center-allocation-4055-0f0108bc",
+    "task_id": "finance.cost_center_allocation",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 13,
+      "business_attempts": 13,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "gmail.googleapis.com",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-candidate-pipeline-report-5038-b304b868",
+    "task_id": "hr.candidate_pipeline_report",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 13,
+      "total_attempts": 14,
+      "business_attempts": 14,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 10,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "recruitee",
+        "trello"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "marketing-blog-refresh-queue-1162-10650216",
+    "task_id": "marketing.blog_refresh_queue",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 17,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 10,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-contractor-badge-expiration-1339-c7353d66",
+    "task_id": "operations.contractor_badge_expiration",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 19,
+      "total_attempts": 20,
+      "business_attempts": 20,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 10,
+      "applications": [
+        "gmail",
+        "gmail.googleapis.com",
+        "google_sheets",
+        "slack",
+        "twilio"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-calendly-discovery-call-703-eb27bc80",
+    "task_id": "sales.calendly_discovery_call",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 29,
+      "total_attempts": 30,
+      "business_attempts": 30,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 13,
+      "applications": [
+        "calendly",
+        "gmail",
+        "google_calendar",
+        "google_drive",
+        "google_sheets",
+        "salesforce",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "simple-escalation-zendesk-slack-3187-8884d8be",
+    "task_id": "simple.escalation_zendesk_slack",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 7,
+      "total_attempts": 7,
+      "business_attempts": 7,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "slack",
+        "zendesk"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-freshdesk-warranty-adjudication-1567-f046f583",
+    "task_id": "support.freshdesk_warranty_adjudication",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 30,
+      "total_attempts": 30,
+      "business_attempts": 30,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "freshdesk",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-credit-card-reconciliation-4051-9e769adf",
+    "task_id": "finance.credit_card_reconciliation",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 16,
+      "business_attempts": 16,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-candidate-rejection-followup-5018-06478c7a",
+    "task_id": "hr.candidate_rejection_followup",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 12,
+      "business_attempts": 12,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "marketing-brand-mention-analysis-1054-4363b748",
+    "task_id": "marketing.brand_mention_analysis",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 25,
+      "total_attempts": 34,
+      "business_attempts": 34,
+      "failed_business_attempts": 9,
+      "duplicate_reads": 0,
+      "distinct_apis": 26,
+      "applications": [
+        "api.helpcrunch.com",
+        "api.helpscout.net",
+        "api.intercom.io",
+        "api.notion.com",
+        "api.pipefy.com",
+        "app.asana.com",
+        "buffer",
+        "companyx.freshdesk.com",
+        "companyx.zendesk.com",
+        "freshdesk",
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "gorgias",
+        "hubspot",
+        "jira",
+        "recruitee",
+        "salesforce",
+        "slack",
+        "trello",
+        "zendesk",
+        "zoho_desk",
+        "{your-domain}.atlassian.net"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-contractor-onboarding-workflow-1331-e3ff2f6c",
+    "task_id": "operations.contractor_onboarding_workflow",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 56,
+      "total_attempts": 66,
+      "business_attempts": 66,
+      "failed_business_attempts": 10,
+      "duplicate_reads": 0,
+      "distinct_apis": 21,
+      "applications": [
+        "app.asana.com",
+        "asana",
+        "bamboohr",
+        "docusign",
+        "gmail",
+        "google_calendar",
+        "google_drive",
+        "google_sheets",
+        "helpscout",
+        "hubspot",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-calendly-lead-scoring-839-81c5f3f7",
+    "task_id": "sales.calendly_lead_scoring",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 28,
+      "total_attempts": 30,
+      "business_attempts": 30,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 17,
+      "applications": [
+        "calendly",
+        "gmail",
+        "google_calendar",
+        "google_drive",
+        "google_sheets",
+        "salesforce",
+        "slack"
+      ]
+    },
+    "passes": [
+      false,
+      false
+    ]
+  },
+  {
+    "trace_id": "support-freshdesk-zoho-migration-1466-8ac50b4b",
+    "task_id": "support.freshdesk_zoho_migration",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 30,
+      "total_attempts": 36,
+      "business_attempts": 36,
+      "failed_business_attempts": 6,
+      "duplicate_reads": 0,
+      "distinct_apis": 15,
+      "applications": [
+        "desk.zoho.com",
+        "freshdesk",
+        "google_sheets",
+        "slack",
+        "zoho_desk"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-depreciation-schedule-4054-75e9401d",
+    "task_id": "finance.depreciation_schedule",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 16,
+      "total_attempts": 16,
+      "business_attempts": 16,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 12,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "quickbooks",
+        "slack",
+        "wave",
+        "xero"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-compliance-training-enrollment-5088-5a291c48",
+    "task_id": "hr.compliance_training_enrollment",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 19,
+      "total_attempts": 32,
+      "business_attempts": 32,
+      "failed_business_attempts": 13,
+      "duplicate_reads": 0,
+      "distinct_apis": 16,
+      "applications": [
+        "api.bamboohr.com",
+        "bamboohr",
+        "gmail",
+        "google_calendar",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "marketing-campaign-calendar-1074-ee539abf",
+    "task_id": "marketing.campaign_calendar",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 11,
+      "total_attempts": 11,
+      "business_attempts": 11,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-cross-department-budget-reconciliation-1360-175e2486",
+    "task_id": "operations.cross_department_budget_reconciliation",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 8,
+      "total_attempts": 9,
+      "business_attempts": 9,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "gmail.googleapis.com",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-calendly-reschedule-chain-801-a9b3b4bf",
+    "task_id": "sales.calendly_reschedule_chain",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 20,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 15,
+      "applications": [
+        "calendly",
+        "gmail",
+        "google_calendar",
+        "hubspot",
+        "salesforce"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-gorgias-freshdesk-migration-1432-5c28cef1",
+    "task_id": "support.gorgias_freshdesk_migration",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 25,
+      "total_attempts": 25,
+      "business_attempts": 25,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "freshdesk",
+        "google_drive",
+        "google_sheets",
+        "gorgias",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-dept-expense-rollup-4019-ec60a0ca",
+    "task_id": "finance.dept_expense_rollup",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 10,
+      "total_attempts": 11,
+      "business_attempts": 11,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "gmail.googleapis.com",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-confluence-policy-migration-5099-8cbf0b4c",
+    "task_id": "hr.confluence_policy_migration",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 18,
+      "total_attempts": 20,
+      "business_attempts": 20,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "company.atlassian.net",
+        "confluence",
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "marketing-campaign-handoff-1077-91b55dba",
+    "task_id": "marketing.campaign_handoff",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 27,
+      "total_attempts": 27,
+      "business_attempts": 27,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-docusign-annual-review-1280-7c5d6125",
+    "task_id": "operations.docusign_annual_review",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 22,
+      "total_attempts": 25,
+      "business_attempts": 25,
+      "failed_business_attempts": 3,
+      "duplicate_reads": 0,
+      "distinct_apis": 17,
+      "applications": [
+        "api.monday.com",
+        "api.notion.com",
+        "confluence",
+        "docusign",
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "monday",
+        "slack",
+        "zoom",
+        "{your-domain}.atlassian.net"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-chatgpt-lead-classification-pipeline-1131-7d9fcd98",
+    "task_id": "sales.chatgpt_lead_classification_pipeline",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 21,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "openai",
+        "salesforce",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-gorgias-loyalty-program-1580-af520888",
+    "task_id": "support.gorgias_loyalty_program",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 31,
+      "total_attempts": 32,
+      "business_attempts": 32,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_sheets",
+        "gorgias",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-escrow-tracking-4079-27acddda",
+    "task_id": "finance.escrow_tracking",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 17,
+      "total_attempts": 17,
+      "business_attempts": 17,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-diversity-metrics-report-5115-95e1db94",
+    "task_id": "hr.diversity_metrics_report",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 12,
+      "business_attempts": 12,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "marketing-competitive-response-plan-1115-3362c01b",
+    "task_id": "marketing.competitive_response_plan",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 22,
+      "total_attempts": 24,
+      "business_attempts": 24,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 14,
+      "applications": [
+        "api.notion.com",
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "hubspot",
+        "slack",
+        "trello",
+        "your-domain.atlassian.net"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-docusign-prospect-nda-1276-77f06804",
+    "task_id": "operations.docusign_prospect_nda",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 12,
+      "total_attempts": 15,
+      "business_attempts": 15,
+      "failed_business_attempts": 3,
+      "duplicate_reads": 0,
+      "distinct_apis": 12,
+      "applications": [
+        "airtable",
+        "docusign",
+        "gmail",
+        "gmail.googleapis.com",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-chatgpt-lead-summary-generator-1134-699f2f41",
+    "task_id": "sales.chatgpt_lead_summary_generator",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 21,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "hubspot",
+        "openai",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-gorgias-order-lookup-1405-8e0221e2",
+    "task_id": "support.gorgias_order_lookup",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 18,
+      "total_attempts": 18,
+      "business_attempts": 18,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "google_sheets",
+        "gorgias",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-expense-reclassification-4034-88654fb5",
+    "task_id": "finance.expense_reclassification",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 14,
+      "total_attempts": 15,
+      "business_attempts": 15,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 6,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "xero"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-docusign-offer-letters-5043-fb35253f",
+    "task_id": "hr.docusign_offer_letters",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 13,
+      "total_attempts": 13,
+      "business_attempts": 13,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "docusign",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      false,
+      false
+    ]
+  },
+  {
+    "trace_id": "marketing-competitor-product-launch-1131-5b6c6f45",
+    "task_id": "marketing.competitor_product_launch",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 18,
+      "total_attempts": 18,
+      "business_attempts": 18,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-drive-notion-archive-1205-2e8fc26e",
+    "task_id": "operations.drive_notion_archive",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 7,
+      "total_attempts": 9,
+      "business_attempts": 9,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "api.notion.com",
+        "gmail",
+        "google_drive",
+        "notion"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-competitive-displacement-outreach-1114-39aea838",
+    "task_id": "sales.competitive_displacement_outreach",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 13,
+      "total_attempts": 15,
+      "business_attempts": 15,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "linkedin",
+        "salesforce"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-gorgias-quality-audit-1469-d135b5bf",
+    "task_id": "support.gorgias_quality_audit",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 11,
+      "total_attempts": 13,
+      "business_attempts": 13,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 11,
+      "applications": [
+        "bamboohr",
+        "gmail",
+        "gmail.googleapis.com",
+        "google_sheets",
+        "gorgias",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-expense-split-allocation-4092-f9e3ed7b",
+    "task_id": "finance.expense_split_allocation",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 22,
+      "total_attempts": 23,
+      "business_attempts": 23,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 10,
+      "applications": [
+        "bamboohr",
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-docusign-policy-acknowledgment-5079-b0415227",
+    "task_id": "hr.docusign_policy_acknowledgment",
+    "qualified": false,
+    "metrics": {
+      "effective_business_calls": 16,
+      "total_attempts": 16,
+      "business_attempts": 16,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 7,
+      "applications": [
+        "docusign",
+        "google_drive",
+        "google_sheets"
+      ]
+    },
+    "passes": [
+      false,
+      false
+    ]
+  },
+  {
+    "trace_id": "marketing-contact-data-cleanup-1008-2a5b635b",
+    "task_id": "marketing.contact_data_cleanup",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 19,
+      "total_attempts": 22,
+      "business_attempts": 22,
+      "failed_business_attempts": 3,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "gmail",
+        "hubspot",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-drive-slack-dock-schedule-1213-8ebcc11c",
+    "task_id": "operations.drive_slack_dock_schedule",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 18,
+      "business_attempts": 18,
+      "failed_business_attempts": 3,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-contract-renewal-coordinator-1181-135e3038",
+    "task_id": "sales.contract_renewal_coordinator",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 18,
+      "total_attempts": 18,
+      "business_attempts": 18,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 13,
+      "applications": [
+        "calendly",
+        "docusign",
+        "freshdesk",
+        "google_calendar",
+        "salesforce",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-helpcrunch-engagement-scoring-1479-53f01234",
+    "task_id": "support.helpcrunch_engagement_scoring",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 23,
+      "total_attempts": 27,
+      "business_attempts": 27,
+      "failed_business_attempts": 4,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_sheets",
+        "helpcrunch",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-financial-close-checklist-4040-82a594db",
+    "task_id": "finance.financial_close_checklist",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 22,
+      "total_attempts": 25,
+      "business_attempts": 25,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 1,
+      "distinct_apis": 14,
+      "applications": [
+        "bamboohr",
+        "gmail",
+        "google_calendar",
+        "google_drive",
+        "google_sheets",
+        "quickbooks",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "hr-docusign-severance-agreements-5089-2bd1cc54",
+    "task_id": "hr.docusign_severance_agreements",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 20,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 11,
+      "applications": [
+        "docusign",
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "sheets.googleapis.com"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "marketing-content-repurpose-1083-9bc93b05",
+    "task_id": "marketing.content_repurpose",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 15,
+      "business_attempts": 15,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "operations-equipment-calibration-scheduling-1348-a27efc34",
+    "task_id": "operations.equipment_calibration_scheduling",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 15,
+      "total_attempts": 16,
+      "business_attempts": 16,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "app.asana.com",
+        "asana",
+        "gmail",
+        "google_sheets",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "sales-create-draft-reply-109-394f826f",
+    "task_id": "sales.create_draft_reply",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 20,
+      "total_attempts": 21,
+      "business_attempts": 21,
+      "failed_business_attempts": 1,
+      "duplicate_reads": 0,
+      "distinct_apis": 8,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "salesforce"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "support-helpscout-hubspot-deal-alerts-1468-bc02cb9e",
+    "task_id": "support.helpscout_hubspot_deal_alerts",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 16,
+      "total_attempts": 16,
+      "business_attempts": 16,
+      "failed_business_attempts": 0,
+      "duplicate_reads": 0,
+      "distinct_apis": 9,
+      "applications": [
+        "gmail",
+        "google_sheets",
+        "helpscout",
+        "hubspot",
+        "salesforce",
+        "slack"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  },
+  {
+    "trace_id": "finance-grant-expense-tracking-4052-5383c478",
+    "task_id": "finance.grant_expense_tracking",
+    "qualified": true,
+    "metrics": {
+      "effective_business_calls": 33,
+      "total_attempts": 35,
+      "business_attempts": 35,
+      "failed_business_attempts": 2,
+      "duplicate_reads": 0,
+      "distinct_apis": 11,
+      "applications": [
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "sheets.googleapis.com"
+      ]
+    },
+    "passes": [
+      true,
+      true
+    ]
+  }
+]

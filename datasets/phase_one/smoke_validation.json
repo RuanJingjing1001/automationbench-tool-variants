@@ -1,0 +1,71 @@
+{
+  "scope": "Mixed identity-version dispatch; no objective profile, fault injection, or model version selection",
+  "workflows": 10,
+  "all_passed": true,
+  "runs": [
+    {
+      "environment": "automationbench",
+      "split": "dev",
+      "versions": [
+        "economy",
+        "fast",
+        "reliable"
+      ],
+      "profile": "identity dispatch; no injected faults or objective costs",
+      "results": [
+        {
+          "task_id": "finance.airtable_expense_approval",
+          "passed": true
+        },
+        {
+          "task_id": "hr.candidate_pipeline_report",
+          "passed": true
+        },
+        {
+          "task_id": "marketing.analyst_briefing",
+          "passed": true
+        },
+        {
+          "task_id": "operations.canva_asset_management",
+          "passed": true
+        },
+        {
+          "task_id": "sales.add_contact_to_campaign",
+          "passed": true
+        },
+        {
+          "task_id": "support.freshdesk_journey_mapping",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "environment": "appworld",
+      "split": "dev",
+      "versions": [
+        "economy",
+        "fast",
+        "reliable"
+      ],
+      "profile": "identity dispatch; no injected faults or objective costs",
+      "results": [
+        {
+          "task_id": "0d8a4ee_1",
+          "passed": true
+        },
+        {
+          "task_id": "22cc237_1",
+          "passed": true
+        },
+        {
+          "task_id": "287e338_1",
+          "passed": true
+        },
+        {
+          "task_id": "2a163ab_1",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "audited": 100,
+  "qualified": 40,
+  "selected": 20,
+  "errors": 3,
+  "full_audit": "appworld.bundle:appworld/audit.json"
+}

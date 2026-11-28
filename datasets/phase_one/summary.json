@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "dataset_status": "complete",
+  "workflow_count": 50,
+  "environments": {
+    "automationbench": 30,
+    "appworld": 20
+  },
+  "splits": {
+    "dev": 10,
+    "test": 40
+  },
+  "length_bins": {
+    "automationbench": {
+      "16-25": 12,
+      "11-15": 12,
+      "26-40": 6
+    },
+    "appworld": {
+      "11-15": 8,
+      "16-25": 8,
+      "26-40": 4
+    }
+  },
+  "replay_runs_per_workflow": 2,
+  "model_api_calls_for_collection": 0,
+  "variant_scope": "Identity business dispatch only; experiment cost/latency/fault profiles and model version-selection runs are not part of this release.",
+  "manifest_sha256": "1d5effe1102d14fd01c9b54436e523f40f2ed4764e0bb801b695146f05a5d6c4"
+}

@@ -10,6 +10,12 @@ Learn more at [zapier.com/benchmarks](https://zapier.com/benchmarks) or run it o
 
 ## 第一阶段 · 同功能工具变体
 
+### 固定成功工作流数据集
+
+[第一阶段数据集](datasets/phase_one/README.md)已收录 50 条完整成功且通过两次重放的工作流：AutomationBench 30 条、AppWorld 20 条，分为 10 条开发集与 40 条正式评测集。有效业务调用按 11–15、16–25、26–40 分层，数量分别为 20、20、10。目录提供完整载荷、来源与验收记录、采集/重放脚本和固定划分；AppWorld 载荷按官方要求加密发布。这是固定工作流基础数据，模型版本选择与目标优化实验另行运行。
+
+### 原有端到端工具变体实验
+
 基于 Zapier AutomationBench `4a8e106`。选择 `--toolset variants` 时，按配置为各业务动作生成独立可调用的版本，比如 `salesforce_find_records_economy` 和 `salesforce_find_records_fast`。各版复用原参数和业务函数，原任务断言照常评分。`--toolset limited_zapier` 可运行单版本对照。
 
 | `--variant-scenario` | 版本 | 实验差异 |
